@@ -21,15 +21,16 @@
         color:#095487;
         line-height:30px
     }
-
 }
 
 @media (prefers-color-scheme: dark){
     [data-testid="stAppViewContainer"] > .main {
-        background-color:#f2f2f4;
-        color:#1e1e1f;
-    }   
-    #logo-title {
+        background-color: #f2f2f4;
+        background-repeat: repeat;
+        background-position: center center;
+        background-attachment: local;
+    }
+    #logo-title{
         font-size:calc(44px + 2vw); 
         color:#095487/**#91bdda**/;
         line-height: 44px;
@@ -41,16 +42,13 @@
     } 
     #logo-subtitle{
         font-size:18px;
-        color:#095487;/**#c8d9e4**/;
-        line-height:30px;
+        color:#095487;
+        line-height:30px
     }
-    [class="css-k3w14i e1oyb3mv3"] {
-        color:gray;
-    }
+}
 
-    [class="css-1n543e5 e1ewe7hr5"] {
-        background-color: #7f1717 
-    }
+html, body {
+  background-color: white !important;
 }
 
 .text{
@@ -74,6 +72,8 @@ p{
     padding-top: 1rem;
     padding-bottom: 3rem;
 }
+
+
 
 h1 {
     color:#003d66;
