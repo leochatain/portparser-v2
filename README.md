@@ -1,15 +1,15 @@
 ---
 title: Portparser.v2
-emoji: 📚
-colorFrom: red
-colorTo: red
+emoji: ⚡
+colorFrom: blue
+colorTo: indigo
 sdk: streamlit
 app_port: 8501
 tags:
 - Universal Dependencies
 - Portuguese
 pinned: false
-short_description: Parser for Portuguese texts using UD standards
+short_description: A parsing model for Brazilian Portuguese
 license: cc-by-4.0
 sdk_version: 1.46.1
 python_version: 3.11
