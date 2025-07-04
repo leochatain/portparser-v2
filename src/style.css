@@ -1,6 +1,6 @@
 @media (prefers-color-scheme: light){
-    body{ background-color: #ffffff; }
-    
+    body{ background-color: #ffffff !important;}
+
     [data-testid="stAppViewContainer"] > .main {
         background-color: #f2f2f4;
         background-repeat: repeat;
@@ -25,7 +25,7 @@
 }
 
 @media (prefers-color-scheme: dark){
-    body{ background-color: #ffffff; }
+    body{ background-color: #ffffff !important; }
 
     [data-testid="stAppViewContainer"] > .main {
         background-color: #f2f2f4;
