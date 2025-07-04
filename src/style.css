@@ -1,3 +1,6 @@
+html, body {
+  background-color: white !important;
+}
 
 @media (prefers-color-scheme: light){
     [data-testid="stAppViewContainer"] > .main {
@@ -45,10 +48,6 @@
         color:#095487;
         line-height:30px
     }
-}
-
-html, body {
-  background-color: white !important;
 }
 
 .text{
