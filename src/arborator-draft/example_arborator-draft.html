@@ -1,0 +1,198 @@
+<!DOCTYPE HTML>
+
+<html>
+
+<head>
+    <meta charset="UTF-8" />
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+    <link rel="stylesheet" href="bootstrap.min.css">
+    <link rel="stylesheet" href="arborator-draft.css" type="text/css" />
+    <title>Arborator Draft - Example of visualization of CoNLL-U data</title>
+</head>
+
+<body>
+    <div class="container">   
+        
+        <div style="text-align: center;">
+            <svg
+            xmlns:dc="http://purl.org/dc/elements/1.1/"
+            xmlns:cc="http://creativecommons.org/ns#"
+            xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+            xmlns:svg="http://www.w3.org/2000/svg"
+            xmlns="http://www.w3.org/2000/svg"
+            version="1.1"
+            viewBox="-4202 0 5704.1939 1840.839"
+            style="image-rendering:optimizeQuality;"
+            height="130"
+            width="270"
+            xml:space="preserve">
+            <path
+                style="fill:none;stroke:#4a2769;stroke-width:128.73750305;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;"
+                d="m -1890.5398,1002.7933 -1822.5445,615.288 c -261.3344,-190.4146 -424.5469,-433.2903 -424.5469,-661.59345 0,-685.88115 1244.2446,-1296.6446 2780.191,-1296.6446 1534.97478,0 2795.2653,610.76345 2795.2653,1296.6446 0,685.88105 -1252.26757,1244.49535 -2787.2424,1244.49535 -239.9613,0 -490.6091,-19.4301 -718.9123,-43.7176 L -751.94297,618.40481 -882.8496,663.4494" /><path
+                style="fill:none;stroke:#dd137b;stroke-width:128.73750305;stroke-miterlimit:4;"
+                d="M -864.53567,745.22843 C -964.68477,501.46149 -1354.4152,-183.90675 -1694.5756,-3.2652517 -2014.6556,165.68318 -2049.9732,423.17981 -1871.2632,1084.3717 c 67.0564,232.3776 161.3346,398.0135 238.7197,540.6756" /><path
+                style="fill:none;stroke:#4a2769;stroke-width:128.73750305;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;"
+                d="M -2068.3297,2157.2657 -751.94297,618.40481"
+                />
+            </svg>
+        </div>
+        <div class="row" style="margin-top: 15px;">
+                <div class="panel panel-primary" style="border-color: #4a2769;">
+                    <div class="panel-heading" style="background-color: #4a2769;"><h2 >It's easy to add dependency graphs to your web page</h2></div>
+                    <div class="panel-body">
+
+                        <ol>
+                            <li> <strong>Simply put the CoNLL-U data between &lt;conll&gt; tags where you want to show the dependency graph.</strong></li>
+                            <li><strong>Import arborator-draft.css, arborator-draft.js, d3.js, and jquery.</strong></li>
+                            <li><strong>Add this in the end of your html page:</strong></li>
+                          </ol> 
+
+                      
+                        <pre><code>     window.onload = function () { 
+		new ArboratorDraft(); // START
+        }</code></pre>
+                        <p><strong>Automatically, the CoNLL-U data will be transformed into beautiful dependency graphs!</strong></p>
+
+                        <p>Graphical options are in arborator-draft.css</p>
+                        <p>If you want to generally modify which features are shown, modify these lines in the arborator-draft.js:</p>
+                        <pre><code>    shownfeatures=["FORM", "UPOS", "LEMMA", "MISC.Gloss"];
+    shownmetas=['text_en']</code></pre>
+        <p>If you want to temporarily modify which features are shown, add the shownfeatures attribute to the meta-features of the conll representations, and provide the list of features separated by commas. Morphosyntactic features must be prefixed by FEATS. and miscellaneous features by MISC. as in:</p>
+         <pre><code># shownfeatures = FORM, UPOS, LEMMA, MISC.Gloss, FEATS.ExtPos, FEATS.PhraseType, FEATS.InTitle
+</code></pre>
+
+    <p>If you want to have a button to show the complete conll data (not only per tree), change <code>showAllConllButton</code> to true</p>
+    <p>If you want to add those two blue buttons just below to your page, which allow to download the complete set of svg or png images in a zip, add <code>jszip.min.js</code> and <code>FileSaver.min.js</code> to the imports</p>
+   
+    <hr/>
+    <p>Please admire the speed of the non-blocking rendering in <a href="speedtest.separateConllTags.html">this file with many separate CoNLL nodes</a> and <a href="speedtest.oneBigConllTag.html">that file with one very long CoNLL node</a></p>
+    <p>Todo: 
+        <ul>
+            <li>add sound player if sound_url is present.</li>
+            <li>For SVG and PNG download, update automatically the information from the .css file, instead of copying it into the code as defaultcss. See problem at https://stackoverflow.com/questions/3211536/accessing-cross-domain-style-sheet-with-cssrules</li>
+            <li>When hanging back in the conll node, fix the order with the neighbors, so that a surrounding div becomes unnecessary.</li>
+           
+          </ul> </p>
+
+                    </div>
+                    <div class="panel-footer">
+                        <button id="btnSvgZip" class="btn btn-primary"  style="background-color: #4a2769; border-color: #4a2769;">Export SVG files in Zip</button>
+                        <button id="btnPngZip" class="btn btn-primary"  style="background-color: #4a2769; border-color: #4a2769;">Export PNG files in Zip</button>
+                    </div>
+                </div>
+            </div>
+
+        <div class="row">
+            <div class="panel panel-primary" style="border-color: #4a2769;">
+                <div class="panel-heading" style="background-color: #4a2769; border-color: #4a2769;"><h2>First example of CoNLL-U data surrounded by Conll tags</h2></div>
+                <p>Random text before the div containing the conll tag</p>
+                <div class="panel-body">
+                    
+                    <conll>
+
+# sent_id = KAD_15_Money-Wahala_MG__22
+# sound_url = http://www.tal.univ-paris3.fr/trameur/iTrameur-naija/mp3/KAD_15_Money-Wahala_MG.mp3
+# speaker_id = Sp194
+# text = # how { di gene- || generation } go be ?//
+# text_en = How will the next gene… generation be?
+# text_ortho = How di gene-... generation go be?
+# shownfeatures = FORM, UPOS, LEMMA, MISC.Gloss, FEATS.PronType, FEATS.Aspect
+1	#	#	PUNCT	_	_	2	punct	_	AlignBegin=85160|AlignEnd=85800|Gloss=PUNCT
+2	how	how	ADV	_	PronType=Int	0	root	10:@mod	AlignBegin=85800|AlignEnd=86049|Gloss=how.Q
+3	{	{	PUNCT	_	_	5	punct	_	AlignBegin=86049|AlignEnd=86079|Gloss=PUNCT
+4	di	the	DET	_	Definite=Def|PronType=Art	5	det	_	AlignBegin=86079|AlignEnd=86230|Gloss=DEF.ART
+5	gene-	X	X	_	_	9	subj	_	AlignBegin=86230|AlignEnd=86530|Gloss=X
+6	||	||	PUNCT	_	_	7	punct	_	AlignBegin=86530|AlignEnd=86560|Gloss=PUNCT
+7	generation	generation	NOUN	_	_	5	conj:coord	_	AlignBegin=86560|AlignEnd=86950|Gloss=generation
+8	}	}	PUNCT	_	_	5	punct	_	AlignBegin=86950|AlignEnd=86980|Gloss=PUNCT
+9	go	go	AUX	_	Aspect=Prosp	2	comp:cleft	_	AlignBegin=86980|AlignEnd=87110|Gloss=PROSP
+10	be	be	VERB	_	PartType=Cop	9	comp:aux	_	AlignBegin=87110|AlignEnd=87310|Gloss=be
+11	?//	?//	PUNCT	_	_	2	punct	_	AlignBegin=87310|AlignEnd=87340|Gloss=PUNCT
+                    
+1	l'	le	DET	_	_	2	spe	_	_
+2	avenir	avenir	NOM	_	_	3	subj	_	_
+3	dépend	dépendre	VRB	_	_	0	root	_	_
+4	de	de	PRE	_	_	3	comp	_	_
+5	notre	son	DET	_	_	6	spe	_	_
+6	capacité	capacité	NOM	_	_	4	dep	_	_
+7	à	à	PRE	_	_	6	dep	_	_
+8	construire	construire	VNF	_	_	7	dep	_	_
+9	à	à	PRE	_	_	7	para	_	_
+10	créer	créer	VNF	_	_	9	dep	_	_
+11	à	à	PRE	_	_	9	para	_	_
+12	rêver	rêver	VNF	_	_	11	dep	_	_
+13	ensemble	ensemble	ADV	_	_	12	ad	_	_
+14	les	le	DET	_	_	15	spe	_	_
+15	voies	voie	NOM	_	_	12	comp	_	_
+16	de	de	PRE	_	_	15	dep	_	_
+17	l'	le	DET	_	_	18	spe	_	_
+18	aventure	aventure	NOM	_	_	16	dep	_	_
+19	humaine	humain	ADJ	_	_	18	dep	_	_
+                    </conll>
+                    
+                </div>
+                <p>Random text after the div containing the conll tag</p>
+            </div>
+        </div>
+        
+        <div class="row">
+            <div class="panel panel-danger">
+                <div class="panel-heading"  style="background-color: #dd137b;color:white; border-color: #dd137b;"><h2>Another example of CoNLL-U data surrounded by Conll tags</h2></div>
+                <div class="panel-body">
+                        <conll>
+
+# text_en = I wrote the letter with a quill.
+1	Я	ja	PRON	_	Case=Nom|Number=Sing|Person=1|PronType=Prs	2	nsubj	_	Gloss=I
+2	написал	napisat'	VERB	_	Gender=Masc|Number=Sing|VerbForm=Part|Voice=Act	0	root	_	Gloss=wrote
+3	письмо	pis'mo	NOUN	_	Case=Acc|Gender=Neut|Number=Sing	2	dobj	_	Gloss=the-letter
+4	пером	pero	NOUN	_	Case=Ins|Gender=Neut|Number=Sing	2	nmod	_	Gloss=with-a-quill
+
+1	car	car	COO	_	_	12	mark	_	_
+2	dans	dans	PRE	_	_	12	periph	_	_
+3	un	un	DET	_	_	4	spe	_	_
+4	monde	monde	NOM	_	_	2	dep	_	_
+5	où	où	PRQ	_	_	9	ad	_	_
+6	rien	rien	PRO	_	_	8	subj	_	_
+7	n'	ne	CLN	_	_	8	ad	_	_
+8	est	être	VRB	_	_	4	dep	_	_
+9	figé	figer	VPP	_	_	8	aux	_	_
+10	l'	le	DET	_	_	11	spe	_	_
+11	avenir	avenir	NOM	_	_	12	subj	_	_
+12	dépend	dépendre	VRB	_	_	0	root	_	_
+13	de	de	PRE	_	_	12	comp	_	_
+14	nous	lui	PRO	_	_	13	dep	_	_
+                        </conll>
+                </div>
+            </div>  
+        </div>
+    </div>
+
+<!-- 
+        
+
+                     -->
+
+    <!-- <script language="JavaScript" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/d3/4.10.0/d3.js"></script> -->
+    <script src="d3.js"></script>
+    <!-- <script src="d3-drag.min.js"></script> -->
+    <!-- <script src="https://code.jquery.com/jquery-3.2.1.min.js"
+	integrity="sha256-hwg4gsxgFZhOsEEamdOYGBf13FyQuiTwlAQgxVSNgt4="
+    crossorigin="anonymous"></script> -->
+    <script src="jquery-3.2.1.min.js"></script>
+    <!-- <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script> -->
+    <!-- <script src="bootstrap.min.css"></script> -->
+    <script src="FileSaver.min.js"></script>
+    <script src="jszip.min.js"></script>
+    <!-- <script type="text/javascript" src="rgbcolor.js"></script> 
+    <script type="text/javascript" src="StackBlur.js"></script> -->
+    <script type="text/javascript" src="canvg.js"></script> 
+    <script language="JavaScript" type="text/javascript" src="arborator-draft.js"></script>
+    <script>
+   
+	window.onload = function () {
+		new ArboratorDraft(myshownfeatures=["FORM", "UPOS", "LEMMA", "MISC.Gloss"]); // START. myshownfeatures has the standard value here and can be omitted if this is the desired set of features to be shown.
+        }
+    </script>
+</body>
+
+</html>

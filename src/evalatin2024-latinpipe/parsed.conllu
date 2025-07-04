@@ -1,0 +1,20 @@
+# sent_id = S0001
+# text = Uma frase como exemplo.
+1	Uma	um	DET	_	Definite=Ind|Gender=Fem|Number=Sing|PronType=Art	2	det	_	_
+2	frase	frase	NOUN	_	Gender=Fem|Number=Sing	0	root	_	_
+3	como	como	ADP	_	_	4	case	_	_
+4	exemplo	exemplo	NOUN	_	Gender=Masc|Number=Sing	2	nmod	_	SpaceAfter=No
+5	.	.	PUNCT	_	_	2	punct	_	_
+
+# sent_id = S0001
+# text = O menino viu a menina com o telescópio.
+1	O	_	_	_	_	_	_	_	_
+2	menino	_	_	_	_	_	_	_	_
+3	viu	_	_	_	_	_	_	_	_
+4	a	_	_	_	_	_	_	_	_
+5	menina	_	_	_	_	_	_	_	_
+6	com	_	_	_	_	_	_	_	_
+7	o	_	_	_	_	_	_	_	_
+8	telescópio	_	_	_	_	_	_	_	SpaceAfter=No
+9	.	_	_	_	_	_	_	_	_
+

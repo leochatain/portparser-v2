@@ -1,0 +1,7 @@
+# sent_id = S0001
+# text = Uma frase como exemplo.
+1	Uma	um	DET	_	Definite=Ind|Gender=Fem|Number=Sing|PronType=Art	2	det	_	_
+2	frase	frase	NOUN	_	Gender=Fem|Number=Sing	0	root	_	_
+3	como	como	ADP	_	_	4	case	_	_
+4	exemplo	exemplo	NOUN	_	Gender=Masc|Number=Sing	2	nmod	_	SpaceAfter=No
+5	.	.	PUNCT	_	_	2	punct	_	_

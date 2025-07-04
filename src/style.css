@@ -1,0 +1,217 @@
+
+@media (prefers-color-scheme: light){
+    [data-testid="stAppViewContainer"] > .main {
+        background-color: #f2f2f4;
+        background-repeat: repeat;
+        background-position: center center;
+        background-attachment: local;
+    }
+    #logo-title{
+        font-size:calc(44px + 2vw); 
+        color:#095487/**#91bdda**/;
+        line-height: 44px;
+    } 
+    #logo-version{
+        font-size:24px; 
+        color:#095487/**#91bdda**/;
+        line-height: 24px;
+    } 
+    #logo-subtitle{
+        font-size:18px;
+        color:#095487;
+        line-height:30px
+    }
+
+}
+
+@media (prefers-color-scheme: dark){
+    [data-testid="stAppViewContainer"] > .main {
+        background-color:#f2f2f4;
+        color:#1e1e1f;
+    }   
+    #logo-title {
+        font-size:calc(44px + 2vw); 
+        color:#095487/**#91bdda**/;
+        line-height: 44px;
+    } 
+    #logo-version{
+        font-size:24px; 
+        color:#095487/**#91bdda**/;
+        line-height: 24px;
+    } 
+    #logo-subtitle{
+        font-size:18px;
+        color:#095487;/**#c8d9e4**/;
+        line-height:30px;
+    }
+    [class="css-k3w14i e1oyb3mv3"] {
+        color:gray;
+    }
+
+    [class="css-1n543e5 e1ewe7hr5"] {
+        background-color: #7f1717 
+    }
+}
+
+.text{
+    color: #000000;
+}
+
+p{
+    color:#000000;
+}
+
+#logo-position {
+    padding-bottom:25px; 
+    padding-top:50px
+} 
+
+[data-testid="stForm"] {
+    background-color:#9fc5d1 /**#b7d3e7/**#92c1cf/**#9bc2d1**/;
+}
+
+.appview-container .main .block-container {
+    padding-top: 1rem;
+    padding-bottom: 3rem;
+}
+
+h1 {
+    color:#003d66;
+    padding-left:1rem;
+    padding-right:1rem;
+}
+
+/** run button **/
+[class="css-b3z5c9 e1ewe7hr5"]{
+    background-color: #e4e1e1;
+    color:#1e1e1f;
+}
+
+/** button **/
+div.stButton > button:first-child{
+    background-color:white;
+    border-radius: 8px;
+    border: solid 1px #8080ff;
+}
+
+div.stDownloadButton > button {
+    background-color: #f2f2f4/**#5176a0**/ ; 
+    border: solid 1px #7f1717 ;
+}
+
+div.stButton > button:first-child:hover{
+    background-color: #8080ff; 
+    color:white !important;
+    border: solid 1px #8080ff;
+
+}
+input[type="radio"]:checked + div {
+    color: black !important;
+   }
+
+  
+input[inputmode="text"] {
+    border:solid 1px #92c1cf !important;
+    color:black;
+    
+   }
+
+div.row-widget.stRadio > div[role="radiogroup"] > label[data-baseweb="radio"] > div {
+    color: black;
+ }
+
+a:link{
+    color:#207bd1/**#0088be**/;
+}
+
+a:hover {
+    color: #d22375 /**#d12c71;/**#7733ff/**#8080ff**/;
+}
+
+button{
+    padding-left:1rem;
+    padding-right:1rem;
+    border-radius: 15%;
+}
+
+[data-testid='stFileUploader'] > button {
+    background-color: #ffffff;
+}
+
+[class="css-ocqkz7 esravye3"]{
+    /**row1**/
+    margin:0px 0px 0px 0px;
+    padding:0;
+}
+
+/** streamlit expander **/
+div.streamlit-expanderHeader {
+    font-size:18px;
+    color:#266087;
+    line-height:4px
+}
+div.streamlit-expanderContent {
+    font-size:18px;
+    background-color:#ffffff;
+    color:#266087;
+    padding: 2px;
+}
+
+/** streamlit footer **/
+footer {
+    visibility: hidden;
+}
+
+[data-testid="stHeader"] {
+    display:none;
+}
+
+/** tab styles **/
+.stTabs [data-baseweb="tab-list"] {
+    gap: 2px;
+}
+
+.stTabs [data-baseweb="tab"] {
+    white-space: pre-wrap;
+    background-color: #f2f2f4;
+    border-radius: 5px 5px 0px 0px;
+    gap: 1px;
+    padding: 10px 20px 10px 20px;
+    color: #b3003b;/** magenta **/
+    border-color:#cccccc;
+    font-size:30px;
+}
+
+.stTabs [data-baseweb="tab-border"] {
+    box-sizing: border-box;
+}
+
+.stTabs [data-baseweb="tab-panel"] {
+    box-sizing: border-box;
+    background-color:#ffffff;
+    border-radius: 0px 10px 10px 10px;
+    padding-bottom:26px;
+    padding-top:26px;
+    color:#1e1e1f;
+}
+
+[data-baseweb="base-input"]{
+    background-color: #ffffff;
+}
+
+.stTabs [aria-selected="true"] {
+      background-color: #ffffff;
+}
+
+/** line above selected tab **/
+.st-dn {
+background-color: #ffffff;
+}
+
+input{
+    background-color: #ffffff;
+}
+
+*, ::before, ::after {
+}
+
