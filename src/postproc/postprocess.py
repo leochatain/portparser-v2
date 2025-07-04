@@ -1,8 +1,8 @@
 #################################################
-### Post Processing Program to Portparser.v2
+### Post Processing Program to Portparser.v3
 #################################################
 #
-#  (c) Lucelene Lopes 2024
+#  (c) Lucelene Lopes 2025
 #
 ##################
 #  main function: fixLemmaFeatures()
@@ -83,23 +83,26 @@ def parseOptions(arguments):
 #################################################
 def getUsualAbbr():
     infile = open("./src/postproc/usAbbr.tsv", "r")
-    dayW, month, abbr, ordinal = [], [], [], []
+    abbr = []
     for line in infile:
         if (line[0] == "#"):
             continue
         buf = line[:-1].split("\t")
-        if (buf[1] == "week"):
-            dayW.append([buf[0], buf[2], buf[3], buf[4]])
-        elif (buf[1] == "month"):
-            month.append([buf[0], buf[2], buf[3], buf[4]])
-        elif (buf[1] == "abbr"):
+        if (buf[1] == "abbr"):
             abbr.append([buf[0], buf[2], buf[3], buf[4]])
-        elif (buf[1] == "ordinal"):
-            ordinal.append([buf[0], buf[2], buf[3], buf[4]])
-    return dayW, month, abbr, ordinal
+    return abbr
 
 #################################################
-### Function - Check if word is in an abbreviation list
+### Function - Check if word is in the abbreviation
+#################################################
+def isAbbr(listAbbr, form):
+    for a in listAbbr:
+        if (form == a[0]):
+            return True
+    return False
+
+#################################################
+### Function - get info word is in an abbreviation list
 #################################################
 def isWithin(listAbbr, form):
     for a in listAbbr:
@@ -108,7 +111,7 @@ def isWithin(listAbbr, form):
     return None, None, None
 
 #################################################
-### Function - Check if word is in an abbreviation list
+### Function - Print a frequency list
 #################################################
 def print_reps(repfile, accName, acc):
     print("\n==========================================================\n", file=repfile)
@@ -117,16 +120,145 @@ def print_reps(repfile, accName, acc):
         print("{:8} - fixed: {:6>}".format(accName[i], acc[i]))
 
 #################################################
-### Main Function - Fix Lemma and Features
+### Function - fix upper letters in coumpound words
 #################################################
-def fixLemmaFeatures():
-    lexCloseTags = ["ADP", "ADV", "CCONJ", "DET", "PRON", "SCONJ"]
-    lexOpenTags  = ["ADJ", "INTJ", "NOUN", "NUM"]
-    lexVerbTags  = ["AUX", "VERB"]
-    lexOutOfTags = ["PROPN", "PUNCT", "SYM"]
-    # the POS tag "X" is dealt differently
+def fixCompoundUpper(form, lemma, upos, feats):
+    if (upos in ["PROPN", "SYM", "X", "PUNCT"]):
+        return upos, form, "_"
+    else:
+        lemma = lemma.lower()
+        # # deal with the lemma
+        # dashesF = form.count("-")
+        # dashesL = lemma.count("-")
+        # if (dashesF == dashesL):
+        #     buf = lemma
+        #     bits = []
+        #     for i in range(dashesL):
+        #         dash = buf.index("-")
+        #         bits.append(buf[:dash])
+        #         buf = buf[dash+1:]
+        #         for j in range(1,len(bits[-1])):
+        #             if (bits[-1][j].isupper()):
+        #                 bits[-1] = bits[-1][:j]+bits[-1][j].lower()+bits[-1][j+1:]
+        #     lemma = bits[0]
+        #     for i in range(1,len(bits)):
+        #         lemma += "-"+bits[i]
+        #     lemma += "-"+buf
+        # deal with the features
+        #### not yet
+        return upos, lemma, feats
+
+#################################################
+### Function - assemble feats
+#################################################
+def featsFull(feat, abbr=False, extpos="", voicepass=False, prontype="", verbform="", numtype=""):
+    def ignoreCase(f):
+        return f.lower()
+    # disassemble the string
+    if (feat == "_"):
+        feats = []
+    else:
+        feats = feat.split("|")
+    # deal with Abbr=Yes
+    if (abbr) and ("Abbr=Yes" not in feats):
+        feats.append("Abbr=Yes")
+    if (not abbr) and ("Abbr=Yes" in feats):
+        feats.remove("Abbr=Yes")
+    # deal with ExtPos=
+    if (extpos != "") and ("ExtPos="+extpos not in feats):
+        feats.append("ExtPos="+extpos)
+    to_rem = []
+    for f in feats:
+        if (f[:7] == "ExtPos=") and (f != "ExtPos="+extpos):
+            to_rem.append(f)
+    for trf in to_rem:
+        feats.remove(trf)
+    # deal with Voice=Pass
+    if (voicepass) and ("Voice=Pass" not in feats):
+        feats.append("Voice=Pass")
+    if (not voicepass) and ("Voice=Pass" in feats):
+        feats.remove("Voice=Pass")
+    # deal with PronType=
+    if (prontype != None):
+        if (prontype != "") and ("PronType="+prontype not in feats):
+            feats.append("PronType="+prontype)
+        to_rem = []
+        for f in feats:
+            if (f[:9] == "PronType=") and (f != "PronType="+prontype):
+                to_rem.append(f)
+        for trf in to_rem:
+            feats.remove(trf)
+    # deal with VerbForm=
+    if (verbform != None):
+        if (verbform != "") and ("VerbForm="+verbform not in feats):
+            feats.append("VerbForm="+verbform)
+        to_rem = []
+        for f in feats:
+            if (f[:9] == "VerbForm=") and (f != "VerbForm="+verbform):
+                to_rem.append(f)
+        for trf in to_rem:
+            feats.remove(trf)
+    # deal with NumType=
+    if (numtype != None):
+        if (numtype != "") and ("NumType="+numtype not in feats):
+            feats.append("NumType="+numtype)
+        to_rem = []
+        for f in feats:
+            if (f[:8] == "NumType=") and (f != "NumType="+numtype):
+                to_rem.append(f)
+        for trf in to_rem:
+            feats.remove(trf)
+    # assemble the string
+    if (feats == []):
+        return "_"
+    else:
+        feats.sort(key=ignoreCase)
+        ans = ""
+        for f in feats:
+            ans += f+"|"
+        return ans[:-1]
+
+#################################################
+### Function - locate the fixed heads in the sentence
+#################################################
+def locateExtPos(tks):
+    fixeds = []
+    for tk in tks:
+        if (tk[7] == "fixed") and (tk[6] not in fixeds):
+            fixeds.append(tk[6])
+    return fixeds
+
+#################################################
+### Function - check options separating lemma and features
+#################################################
+def sepLEMMA_FEATS(options):
+    opLEMMA = []
+    opFEATS = []
+    for o in options:
+        if (o[0] not in opLEMMA):
+            opLEMMA.append(o[0])
+        if (o[2] not in opFEATS):
+            opFEATS.append(o[2])
+    return opLEMMA, opFEATS
+
+#################################################
+### Main Function - Postprocess fix of UPOS, LEMMA and FEATS
+#################################################
+def posprocFix():
+    # if compound word                                 # fix - replace upper case in Lemma only
+    # if the word is within known unambiguous abbr     # correct arbitrarily
+    lexOutOfTags   = ["PROPN", "PUNCT", "SYM", "X"]    # correct arbitrarily
+    lexCloseTags   = ["ADP", "ADV", "CCONJ", "SCONJ"]  # correct if unique in lex, erase feats (features are impossible)
+    lexPronDetTags = ["DET", "PRON"]                   # correct if unique in lex, require 'PronType', erase impossible features
+    lexOpenTags    = ["ADJ", "INTJ", "NOUN", "NUM"]    # correct if unique in lex, erase impossible features
+    lexVerbTags    = ["AUX", "VERB"]                   # correct if unique in lex, require 'VerbForm', erase impossible features
+    digits = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']
+    ordinalsignsFem = ['ª', 'a']
+    ordinalsignsMasc = ['º', '°', 'o']
+    ordinalsignsNeut = ['.']
+
     if (len(sys.argv) == 1):
-        arguments = ["xxx.conllu", "yyy.conllu", True, True, False]
+        arguments = ["xxx.conllu", "yyy.conllu", True, True, False] # output file, input file, do lemmas, do features, run quiet(false)
         print("Assumindo default: 'yyy.conllu' como arquivo de entrada, 'xxx.conllu' como arquivo de saída, e executando correção de lemas e features.")
     else:
         arguments = parseOptions(sys.argv)
@@ -135,306 +267,225 @@ def fixLemmaFeatures():
             print("Assumindo 'xxx.conllu' como arquivo de saída")
             arguments[0] = 'xxx.conllu'
         if not os.path.isfile(arguments[1]):
-            print("Arquivo de entrada inválido - por favor corrija e tente novamente")
+            print(arguments[1], "Arquivo de entrada inválido - por favor corrija e tente novamente")
         else:
             outfile = open(arguments[0], "w")
-            repfile = open(arguments[0]+".rep.tsv", "w")
+            if (not arguments[4]): repfile = open(arguments[0]+".rep.tsv", "w")
             base = conlluFile(arguments[1])
-            # contadores
-            accName = ["Lchanged", "LnoLEX", "L1LEX", "LmLEX", "LunkTAG", \
-                       "LdaysW", "Lmonth", "LuAbbr", "Lord", "LrepTAG", \
-                       "Fchanged", "FnoLEX", "F1LEX", "FmLEX", "FunkTAG", \
-                       "FdaysW", "Fmonth", "FuAbbr", "Ford", "FrepTAG", \
-                      ]
+            # counters
+            accName = ["Pchanged", "Lchanged", "Fchanged"]
             acc = [0]*len(accName)
-            # usual Abbr (lidas de um .tsv no formato "forma", "tipo", "POS", "lemma", "feats")
-            dayW, month, abbr, ordinal = getUsualAbbr()
+            # usual Abbr (read from .tsv with "form", "kind", "UPOS", "LEMMA", "FEATS")
+            usualAbbr = getUsualAbbr()
             # main loop
             for i in range(base.getS()):
                 b = base.getSentByIndex(i)
+                fixeds = locateExtPos(b[4])
                 for tk in b[4]:
-                    # skip contracted words
+                    # level down contracted tokens info, but ID and FORM
                     if ("-" in tk[0]):
+                        tk[2], tk[3], tk[4], tk[5], tk[6], tk[7], tk[8], tk[9] = "-", "-", "-", "-", "-", "-", "-", "-"
                         continue
-                    # check if abbreviation
-                    pos, lem, feat = isWithin(abbr, tk[1].lower())
-                    if (pos == tk[3]):
-                        if (arguments[2]):    # fix Lemma
-                            if (tk[2] != lem):
-                                acc[accName.index("Lchanged")] += 1
-                                acc[accName.index("LuAbbr")] += 1
-                                if (not arguments[4]):
-                                    print(b[0], tk[0], tk[1], "LuAbbr", tk[2], lem, sep="\t", file=repfile)
-                                tk[2] = lem
-                        if (arguments[3]):    # fix Features
-                            if (tk[5] != feat):
-                                acc[accName.index("Fchanged")] += 1
-                                acc[accName.index("FuAbbr")] += 1
-                                if (not arguments[4]):
-                                    print(b[0], tk[0], tk[1], "FuAbbr", tk[5], feat, sep="\t", file=repfile)
-                                tk[5] = feat
-                    # check if day of the week
-                    elif ("NOUN" == tk[3]):
-                        pos, lem, feat = isWithin(dayW, tk[1].lower())
-                        if (arguments[2]) and (pos is not None):    # fix Lemma
-                            if (tk[2] != lem):
-                                acc[accName.index("Lchanged")] += 1
-                                acc[accName.index("LdaysW")] += 1
-                                if (not arguments[4]):
-                                    print(b[0], tk[0], tk[1], "LdaysW", tk[2], lem, sep="\t", file=repfile)
-                                tk[2] = lem
-                        if (arguments[3]) and (pos is not None):    # fix Features
-                            if (tk[5] != feat):
-                                acc[accName.index("Fchanged")] += 1
-                                acc[accName.index("FdaysW")] += 1
-                                if (not arguments[4]):
-                                    print(b[0], tk[0], tk[1], "FdaysW", tk[5], feat, sep="\t", file=repfile)
-                                tk[5] = feat
-                    # check if month
-                    elif ("NOUN" == tk[3]):
-                        pos, lem, feat = isWithin(month, tk[1].lower())
-                        if (arguments[2]) and (pos is not None):    # fix Lemma
-                            if (tk[2] != lem):
-                                acc[accName.index("Lchanged")] += 1
-                                acc[accName.index("Lmonth")] += 1
-                                if (not arguments[4]):
-                                    print(b[0], tk[0], tk[1], "Lmonth", tk[2], lem, sep="\t", file=repfile)
-                                tk[2] = lem
-                        if (arguments[3]) and (pos is not None):    # fix Features
-                            if (tk[5] != feat):
-                                acc[accName.index("Fchanged")] += 1
-                                acc[accName.index("Fmonth")] += 1
-                                if (not arguments[4]):
-                                    print(b[0], tk[0], tk[1], "Fmonth", tk[5], feat, sep="\t", file=repfile)
-                                tk[5] = feat
-                    # check if ordinal
-                    elif ("ADJ" == tk[3]):
-                        pos, lem, feat = isWithin(ordinal, tk[1].lower())
-                        if (arguments[2]) and (pos is not None):    # fix Lemma
-                            if (tk[2] != lem):
-                                acc[accName.index("Lchanged")] += 1
-                                acc[accName.index("Lord")] += 1
-                                if (not arguments[4]):
-                                    print(b[0], tk[0], tk[1], "Lord", tk[2], lem, sep="\t", file=repfile)
-                                tk[2] = lem
-                        if (arguments[3]) and (pos is not None):    # fix Features
-                            if (tk[5] != feat):
-                                acc[accName.index("Fchanged")] += 1
-                                acc[accName.index("Ford")] += 1
-                                if (not arguments[4]):
-                                    print(b[0], tk[0], tk[1], "Ford", tk[5], feat, sep="\t", file=repfile)
-                                tk[5] = feat
-                    # check if POS tag X
-                    elif (tk[3] == "X"):
-                        if (arguments[2]):    # fix Lemma
-                            if (tk[1] != tk[2]):
-                                acc[accName.index("Lchanged")] += 1
-                                acc[accName.index("LrepTAG")] += 1
-                                if (not arguments[4]):
-                                    print(b[0], tk[0], tk[1], "LrepTAG", tk[2], tk[1], sep="\t", file=repfile)
-                                tk[2] = tk[1]
-                        if (arguments[3]):    # fix Features
-                            if (tk[5] not in ["Foreign=Yes", "_"]):
-                                acc[accName.index("Fchanged")] += 1
-                                acc[accName.index("FrepTAG")] += 1
-                                if (not arguments[4]):
-                                    print(b[0], tk[0], tk[1], "FrepTAG", tk[5], "Foreign=Yes", sep="\t", file=repfile)
-                                tk[5] = "Foreign=Yes"
-                    # check if POS tag out of the Lexicon
-                    elif (tk[3] in lexOutOfTags):
-                        if (arguments[2]):    # fix Lemma
-                            if (tk[1] != tk[2]):
-                                acc[accName.index("Lchanged")] += 1
-                                acc[accName.index("LrepTAG")] += 1
-                                if (not arguments[4]):
-                                    print(b[0], tk[0], tk[1], "LrepTAG", tk[2], tk[1], sep="\t", file=repfile)
-                                tk[2] = tk[1]
-                        if (arguments[3]):    # fix Features
-                            if (tk[5] != "_"):
-                                acc[accName.index("Fchanged")] += 1
-                                acc[accName.index("FrepTAG")] += 1
-                                if (not arguments[4]):
-                                    print(b[0], tk[0], tk[1], "FrepTAG", tk[5], "_", sep="\t", file=repfile)
-                                tk[5] = "_"
-                    # check NUM in numeric form
-                    elif (tk[3] == "NUM") and ((tk[1][0].isdigit()) or \
-                            ((tk[1][0] in ["-", "+"]) and (tk[1][1].isdigit()))):
-                        if (arguments[2]):    # fix Lemma
-                            if (tk[1] != tk[2]):
-                                acc[accName.index("Lchanged")] += 1
-                                acc[accName.index("LrepTAG")] += 1
-                                if (not arguments[4]):
-                                    print(b[0], tk[0], tk[1], "LrepTAG", tk[2], tk[1], sep="\t", file=repfile)
-                                tk[2] = tk[1]
-                        if (arguments[3]):    # fix Features
-                            if (tk[5] not in ["NumType=Card", "_"]):
-                                acc[accName.index("Fchanged")] += 1
-                                acc[accName.index("FrepTAG")] += 1
-                                if (not arguments[4]):
-                                    print(b[0], tk[0], tk[1], "FrepTAG", tk[5], "NumType=Card", sep="\t", file=repfile)
-                                tk[5] = "NumType=Card"
-                    # check Close POS tags (ADP, ADV, CCONJ, DET, PRON, SCONJ)
+                    # fix out of lexikon tokens
+                    if (tk[3] in lexOutOfTags):
+                        if (tk[3] in ["PROPN", "PUNCT", "SYM"]):
+                            pos, lem, feat = tk[3], tk[1], "_"
+                        elif (tk[3] == "X"):
+                            if ("Foreign=Yes" in tk[5]):
+                                pos, lem, feat = tk[3], tk[1], "Foreign=Yes"
+                            else:
+                                pos, lem, feat = tk[3], tk[1], "_"
+                    # fix only lemma in compound words
+                    elif ("-" in tk[1]):
+                        pos, lem, feat = fixCompoundUpper(tk[1], tk[2], tk[3], tk[5])
+                    # fix known abbreviations
+                    elif (isAbbr(usualAbbr, tk[1].lower())) and (tk[3] in ["ADP", "NOUN"]):
+                        pos, lem, feat = isWithin(usualAbbr, tk[1].lower())
+                    # fix numerical NUM, ADJ, NOUN
+                    elif (tk[3] in ["ADJ", "NOUN", "NUM"]) and (not tk[1].isalpha()):
+                        if (tk[3] == "NOUN"):
+                            pos, lem, feat = tk[3], tk[1], "_"
+                        elif (tk[3] == "ADJ"):
+                            if (tk[1][-1] in ordinalsignsMasc):
+                                pos, lem, feat = tk[3], tk[1], "Gender=Masc|NumType=Ord"
+                            elif (tk[1][-1] in ordinalsignsFem):
+                                pos, lem, feat = tk[3], tk[1], "Gender=Fem|NumType=Ord"
+                            elif (tk[1][-1] in ordinalsignsNeut):
+                                pos, lem, feat = tk[3], tk[1], "NumType=Ord"
+                            else:
+                                pos, lem, feat = tk[3], tk[1], "_"
+                        elif (tk[3] == "NUM"):
+                            if (tk[1][-1] in ordinalsignsMasc):
+                                pos, lem, feat = tk[3], tk[1], "Gender=Masc|NumType=Ord"
+                            elif (tk[1][-1] in ordinalsignsFem):
+                                pos, lem, feat = tk[3], tk[1], "Gender=Fem|NumType=Ord"
+                            elif (tk[1][-1] in ordinalsignsNeut):
+                                pos, lem, feat = tk[3], tk[1], "NumType=Ord"
+                            else:
+                                pos, lem, feat = tk[3], tk[1], "NumType=Card"
+                    # fix closed tags - ADP, ADV, CCONJ, SCONJ
                     elif (tk[3] in lexCloseTags):
-                        lowForm = tk[1].lower()
-                        options = lex.pget(lowForm, tk[3])
-                        if (len(options) == 0):                       ### not found
-                            if (arguments[2]):    # fix Lemma
-                                if (tk[1] != tk[2]):
-                                    acc[accName.index("Lchanged")] += 1
-                                    acc[accName.index("LnoLEX")] += 1
-                                    if (not arguments[4]):
-                                        print(b[0], tk[0], tk[1], "LnoLEX", tk[2], tk[1], sep="\t", file=repfile)
-                                    tk[2] = tk[1]
-                            if (arguments[3]):    # fix Features
-                                if (tk[5] != "_"):
-                                    acc[accName.index("Fchanged")] += 1
-                                    acc[accName.index("FnoLEX")] += 1
-                                    if (not arguments[4]):
-                                        print(b[0], tk[0], tk[1], "FnoLEX", tk[5], "_", sep="\t", file=repfile)
-                                    tk[5] = "_"
-                        elif (len(options) == 1):                     ### single option
-                            if (arguments[2]):    # fix Lemma
-                                if (options[0][0] != tk[2]):
-                                    acc[accName.index("Lchanged")] += 1
-                                    acc[accName.index("L1LEX")] += 1
-                                    if (not arguments[4]):
-                                        print(b[0], tk[0], tk[1], "L1LEX", tk[2], options[0][0], sep="\t", file=repfile)
-                                    tk[2] = options[0][0]
-                            if (arguments[3]):    # fix Features
-                                if (options[0][2] != tk[5]):
-                                    acc[accName.index("Fchanged")] += 1
-                                    acc[accName.index("F1LEX")] += 1
-                                    if (not arguments[4]):
-                                        print(b[0], tk[0], tk[1], "F1LEX", tk[5], options[0][2], sep="\t", file=repfile)
-                                    tk[5] = options[0][2]
-                        elif (len(options) > 1):                     ### multiple option
-                            lemmas, guess = [], "x"*100
-                            for o in options:
-                                lemmas.append(o[0])
-                                if (len(o[0]) < len(guess)):
-                                    guess = o[0]
-                            if (arguments[2]):    # fix Lemma
-                                if (tk[2] not in lemmas):
-                                    acc[accName.index("Lchanged")] += 1
-                                    acc[accName.index("LmLEX")] += 1
-                                    if (not arguments[4]):
-                                        print(b[0], tk[0], tk[1], "LmLEX", tk[2], guess, sep="\t", file=repfile)
-                                    tk[2] = guess
-                            feats, guess = [], "x"*100
-                            for o in options:
-                                feats.append(o[2])
-                                if (tk[3] in ["DET", "PRON"]) and ("Person" in o[2]) and ("Person" not in guess):
-                                    guess = o[2]
-                                elif (tk[3] in ["DET", "PRON"]) and ("Person" in o[2]) and ("Person" in guess) and (len(o[2]) < len(guess)):
-                                    guess = o[2]
-                            if (arguments[3]):    # fix Features
-                                if (tk[5] not in feats):
-                                    acc[accName.index("Fchanged")] += 1
-                                    acc[accName.index("FmLEX")] += 1
-                                    if (not arguments[4]):
-                                        print(b[0], tk[0], tk[1], "FmLEX", tk[5], guess, sep="\t", file=repfile)
-                                    tk[5] = guess
-                    # check Open POS tags (ADJ, INTJ, NOUN, NUM)
+                        options = lex.pget(tk[1].lower(), tk[3])
+                        opLEMMA, opFEATS = sepLEMMA_FEATS(options)
+                        abbr = ("Abbr=Yes" in tk[5]) and (tk[1].lower() != tk[2])
+                        if (tk[0] in fixeds):
+                            if   (tk[7] == "cc"):
+                                extpos = "CCONJ"
+                            elif (tk[7] == "advmod"):
+                                extpos = "ADV"
+                            elif (tk[7] == "case"):
+                                extpos = "ADP"
+                            elif (tk[7] == "mark"):
+                                extpos = "SCONJ"
+                            elif (tk[3] == "PRON"):
+                                extpos = "PRON"
+                            else:
+                                extpos = tk[3]
+                        else:
+                            extpos = ""
+                        if (len(options) == 0):      # out of the lex
+                            pos, lem, feat = tk[3], tk[2].lower(), featsFull("_", abbr, extpos=extpos)
+                        elif (len(options) == 1):    # unambiguous in the lex
+                            pos, lem, feat = tk[3], options[0][0], featsFull(options[0][2], abbr, extpos=extpos)
+                        else:                        # ambiguous in the lex - do nothing
+                            pos = tk[3]
+                            lem = opLEMMA[0] if (len(opLEMMA) == 1) else tk[2].lower()
+                            feat = opFEATS[0] if (len(opFEATS) == 1) else tk[5]
+                    # fix Pron and Det tags - PRON, DET
+                    elif (tk[3] in lexPronDetTags):
+                        options = lex.pget(tk[1].lower(), tk[3])
+                        opLEMMA, opFEATS = sepLEMMA_FEATS(options)
+                        abbr = ("Abbr=Yes" in tk[5]) and ((tk[1].lower() != tk[2]) or ("/" in tk[1]) or ("." in tk[1]))
+                        if (tk[0] in fixeds):
+                            if   (tk[7] == "cc"):
+                                extpos = "CCONJ"
+                            elif (tk[7] == "advmod"):
+                                extpos = "ADV"
+                            elif (tk[7] == "case"):
+                                extpos = "ADP"
+                            elif (tk[7] == "mark"):
+                                extpos = "SCONJ"
+                            elif (tk[3] == "PRON"):
+                                extpos = "PRON"
+                            else:
+                                extpos = tk[3]
+                        else:
+                            extpos = ""
+                        if ("PronType" in tk[5]):
+                            idx = tk[5].index("PronType=")+9
+                            prontype = tk[5][idx:idx+3]
+                        elif (tk[3] == "PRON"):
+                            prontype = "Dem"
+                        elif (tk[3] == "DET"):
+                            prontype = "Art"
+                        if (len(options) == 0):      # out of the lex
+                            pos, lem, feat = tk[3], tk[2].lower(), featsFull(tk[5], abbr, extpos=extpos, prontype=prontype)
+                        elif (len(options) == 1):    # unambiguous in the lex
+                            pos, lem, feat = tk[3], options[0][0], featsFull(options[0][2], abbr, extpos=extpos, prontype=None)
+                        else:                        # ambiguous in the lex - do nothing
+                            pos = tk[3]
+                            lem = opLEMMA[0] if (len(opLEMMA) == 1) else tk[2].lower()
+                            feat = opFEATS[0] if (len(opFEATS) == 1) else tk[5]
+                    # fix Open tags - ADJ, INTJ, NOUN, NUM
                     elif (tk[3] in lexOpenTags):
-                        lowForm = tk[1].lower()
-                        options = lex.pget(lowForm, tk[3])
-                        if (len(options) == 0):                       ### not found
-                            continue
-                        elif (len(options) == 1):                     ### single option
-                            if (arguments[2]):    # fix Lemma
-                                if (options[0][0] != tk[2]):
-                                    acc[accName.index("Lchanged")] += 1
-                                    acc[accName.index("L1LEX")] += 1
-                                    if (not arguments[4]):
-                                        print(b[0], tk[0], tk[1], "L1LEX", tk[2], options[0][0], sep="\t", file=repfile)
-                                    tk[2] = options[0][0]
-                            if (arguments[3]):    # fix Features
-                                if (options[0][2] != tk[5]):
-                                    acc[accName.index("Fchanged")] += 1
-                                    acc[accName.index("F1LEX")] += 1
-                                    if (not arguments[4]):
-                                        print(b[0], tk[0], tk[1], "F1LEX", tk[5], options[0][2], sep="\t", file=repfile)
-                                    tk[5] = options[0][2]
-                        elif (len(options) > 1):                     ### multiple option
-                            lemmas, guess = [], "x"*100
-                            for o in options:
-                                lemmas.append(o[0])
-                                if (len(o[0]) < len(guess)):
-                                    guess = o[0]
-                            if (arguments[2]):    # fix Lemma
-                                if (tk[2] not in lemmas) and (guess[:5] != "xxxxx"):
-                                    acc[accName.index("Lchanged")] += 1
-                                    acc[accName.index("LmLEX")] += 1
-                                    if (not arguments[4]):
-                                        print(b[0], tk[0], tk[1], "LmLEX", tk[2], guess, sep="\t", file=repfile)
-                                    tk[2] = guess
-                            feats, guess = [], "x"*100
-                            for o in options:
-                                feats.append(o[2])
-                                if (len(o[2]) < len(guess)):
-                                    guess = o[2]
-                            if (arguments[3]):    # fix Features
-                                if (tk[5] not in feats) and (guess[:5] != "xxxxx"):
-                                    acc[accName.index("Fchanged")] += 1
-                                    acc[accName.index("FmLEX")] += 1
-                                    if (not arguments[4]):
-                                        print(b[0], tk[0], tk[1], "FmLEX", tk[5], guess, sep="\t", file=repfile)
-                                    tk[5] = guess
-                    # check VERB and AUX POS tags
+                        options = lex.pget(tk[1].lower(), tk[3])
+                        opLEMMA, opFEATS = sepLEMMA_FEATS(options)
+                        abbr = ("Abbr=Yes" in tk[5]) and ((tk[1].lower() != tk[2]) or ("/" in tk[1]) or ("." in tk[1]))
+                        if (tk[0] in fixeds):
+                            if   (tk[7] == "cc"):
+                                extpos = "CCONJ"
+                            elif (tk[7] == "advmod"):
+                                extpos = "ADV"
+                            elif (tk[7] == "case"):
+                                extpos = "ADP"
+                            elif (tk[7] == "mark"):
+                                extpos = "SCONJ"
+                            elif (tk[3] == "PRON"):
+                                extpos = "PRON"
+                            else:
+                                extpos = tk[3]
+                        else:
+                            extpos = ""
+                        if ("VerbForm=Part" in tk[5]) and (tk[3] == "ADJ"):
+                            verbform = "Part"
+                        else:
+                            verbform = ""
+                        if ("NumType=Ord" in tk[5]) and (tk[3] in ["ADJ", "NUM"]):
+                            numtype = "Ord"
+                        elif ("NumType=Card" in tk[5]) and (tk[3] == "NUM"):
+                            numtype = "Card"
+                        else:
+                            numtype = ""
+                        if (len(options) == 0):      # out of the lex
+                            pos, lem, feat = tk[3], tk[2].lower(), featsFull(tk[5], abbr, extpos=extpos, verbform=verbform, numtype=numtype)
+                        elif (len(options) == 1):    # unambiguous in the lex
+                            pos, lem, feat = tk[3], options[0][0], featsFull(options[0][2], abbr, extpos=extpos, verbform=None, numtype=None)
+                        else:                        # ambiguous in the lex - do nothing
+                            pos = tk[3]
+                            lem = opLEMMA[0] if (len(opLEMMA) == 1) else tk[2].lower()
+                            feat = opFEATS[0] if (len(opFEATS) == 1) else tk[5]
+                    # fix Verb tags - AUX, VERB
                     elif (tk[3] in lexVerbTags):
-                        lowForm = tk[1].lower()
-                        options = lex.pget(lowForm, tk[3])
-                        if (len(options) == 0):                       ### not found
-                            continue
-                        elif (len(options) == 1):                     ### single option
-                            if (arguments[2]):    # fix Lemma
-                                if (options[0][0] != tk[2]):
-                                    acc[accName.index("Lchanged")] += 1
-                                    acc[accName.index("L1LEX")] += 1
-                                    if (not arguments[4]):
-                                        print(b[0], tk[0], tk[1], "L1LEX", tk[2], options[0][0], sep="\t", file=repfile)
-                                    tk[2] = options[0][0]
-                            if (arguments[3]):    # fix Features
-                                if (options[0][2] != tk[5].replace("|Voice=Pass", "")):
-                                    acc[accName.index("Fchanged")] += 1
-                                    acc[accName.index("F1LEX")] += 1
-                                    if (not arguments[4]):
-                                        print(b[0], tk[0], tk[1], "F1LEX", tk[5], options[0][2], sep="\t", file=repfile)
-                                    tk[5] = options[0][2]
-                        elif (len(options) > 1):                     ### multiple option
-                            lemmas, guess = [], "x"*100
-                            for o in options:
-                                lemmas.append(o[0])
-                                if (len(o[0]) < len(guess)):
-                                    guess = o[0]
-                            if (arguments[2]):    # fix Lemma
-                                if (tk[2] not in lemmas) and (guess[:5] != "xxxxx"):
-                                    acc[accName.index("Lchanged")] += 1
-                                    acc[accName.index("LmLEX")] += 1
-                                    if (not arguments[4]):
-                                        print(b[0], tk[0], tk[1], "LmLEX", tk[2], guess, sep="\t", file=repfile)
-                                    tk[2] = guess
-                            feats, guess = [], "x"*100
-                            for o in options:
-                                feats.append(o[2])
-                                if ("Person=3" in o[2]) and ("Person=3" not in guess):
-                                    guess = o[2]
-                                elif ("Person=3" in o[2]) and ("Person=3" in guess):
-                                    if (len(o[2]) < len(guess)):
-                                        guess = o[2]
-                            if (arguments[3]):    # fix Features
-                                if (tk[5].replace("|Voice=Pass", "") not in feats) and (guess[:5] != "xxxxx"):
-                                    acc[accName.index("Fchanged")] += 1
-                                    acc[accName.index("FmLEX")] += 1
-                                    if (not arguments[4]):
-                                        print(b[0], tk[0], tk[1], "FmLEX", tk[5], guess, sep="\t", file=repfile)
-                                    tk[5] = guess
-
-            print_reps(repfile, accName, acc)
+                        options = lex.pget(tk[1].lower(), tk[3])
+                        opLEMMA, opFEATS = sepLEMMA_FEATS(options)
+                        abbr = ("Abbr=Yes" in tk[5]) and (tk[1].lower() != tk[2])
+                        if (tk[0] in fixeds):
+                            if   (tk[7] == "cc"):
+                                extpos = "CCONJ"
+                            elif (tk[7] == "advmod"):
+                                extpos = "ADV"
+                            elif (tk[7] == "case"):
+                                extpos = "ADP"
+                            elif (tk[7] == "mark"):
+                                extpos = "SCONJ"
+                            elif (tk[3] == "PRON"):
+                                extpos = "PRON"
+                            else:
+                                extpos = tk[3]
+                        else:
+                            extpos = ""
+                        if   ("VerbForm=Inf" in tk[5]):
+                            verbform = "Inf"
+                        elif ("VerbForm=Ger" in tk[5]):
+                            verbform = "Ger"
+                        elif ("VerbForm=Part" in tk[5]):
+                            verbform = "Part"
+                        elif ("VerbForm=Fin" in tk[5]):
+                            verbform = "Fin"
+                        else:
+                            if (tk[1][-1].lower() == "r"):
+                                verbform = "Inf"
+                            else:
+                                verbform = "Fin"
+                        if ("Voice=Pass" in tk[5]):
+                            voicepass = True
+                        else:
+                            voicepass = False
+                        if (len(options) == 0):      # out of the lex
+                            pos, lem, feat = tk[3], tk[2].lower(), featsFull(tk[5], abbr, extpos=extpos, verbform=verbform, voicepass=voicepass)
+                        elif (len(options) == 1):    # unambiguous in the lex
+                            pos, lem, feat = tk[3], options[0][0], featsFull(options[0][2], abbr, extpos=extpos, verbform=None, voicepass=voicepass)
+                        else:                        # ambiguous in the lex - do nothing
+                            pos = tk[3]
+                            lem = opLEMMA[0] if (len(opLEMMA) == 1) else tk[2].lower()
+                            feat = opFEATS[0] if (len(opFEATS) == 1) else tk[5]
+                    # do reports and change
+                    if (pos != tk[3]):
+                        print(b[0], tk[0], tk[1], tk[3], "UPOS", tk[3], pos, sep="\t", file=repfile)
+                        acc[accName.index("Pchanged")] += 1
+                        tk[3] = pos
+                    if (lem != tk[2]):
+                        print(b[0], tk[0], tk[1], tk[3], "LEMMA", tk[2], lem, sep="\t", file=repfile)
+                        acc[accName.index("Lchanged")] += 1
+                        tk[2] = lem
+                    if (feat != tk[5]):
+                        if ("ExtPos=" not in feat):
+                            print(b[0], tk[0], tk[1], tk[3], "FEATS", tk[5], feat, sep="\t", file=repfile)
+                            acc[accName.index("Fchanged")] += 1
+                        tk[5] = feat
+            if (not arguments[4]): print_reps(repfile, accName, acc)
+            if (not arguments[4]): repfile.close()
             base.printNoHeader(outfile)
-            repfile.close()
             outfile.close()
 
-fixLemmaFeatures()
-
-
+posprocFix()
