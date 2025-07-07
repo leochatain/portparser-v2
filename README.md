@@ -2,7 +2,7 @@
 title: Portparser.v2
 emoji: ⚡
 colorFrom: blue
-colorTo: indigo
+colorTo: blue
 sdk: streamlit
 app_port: 8501
 tags:
