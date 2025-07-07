@@ -220,12 +220,13 @@ with rowall[1]:
     with mode2:
         rowmode2 = st.columns([1,13,1,14,1])
         predictions = False
-        with rowmode2[3]:
-            explanation  = 'Upload a text file in order to parse multiple sentences. The file must be in a txt format with one sentence per line. \
-                In case you have multiple sentences altogether, first select the option "Segment text for me" below, and we split it in lines for you.'
-            option1, option2 = 'Text is ready (one sentence per line)','Segment text for me'
-            split_option = st.radio(explanation,[option1,option2])
         with rowmode2[1]:
+            explanation  = 'To analyze several sentences at the same time, upload a text file. Your text must be in txt format (UTF-8). \
+            If your text contains one sentence per line, select the "already segmented, ready to be parsed" option. \
+            If your text contains several sentences in the same segment, select the "segment the text before parsing" option.'
+            option1, option2 = 'already segmented, ready to be parsed','segment the text before parsing'
+            split_option = st.radio(explanation,[option1,option2])
+        with rowmode2[3]:
             with st.form("uploadfile_parser"):
                 uploaded_file = st.file_uploader("Choose a file")
                 submit = st.form_submit_button('Run')
