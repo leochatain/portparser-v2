@@ -197,7 +197,7 @@ with rowall[1]:
                             content = f.read()
                             tab1.text(content)
                             content = content.split('\n')
-                            table = pd.DataFrame([line.split('\t') for line in content[4:]])
+                            table = pd.DataFrame([line.split('\t') for line in content[2:]])
                             table.columns = ['ID','FORM','LEMMA','UPOS','XPOS','FEATS','HEAD','DEPREL','DEPS','MISC']
                             tab2.dataframe(table[:-2], use_container_width=True,hide_index=True)
                     except Exception as e:
