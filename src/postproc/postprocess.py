@@ -284,7 +284,7 @@ def posprocFix():
                 for tk in b[4]:
                     # level down contracted tokens info, but ID and FORM
                     if ("-" in tk[0]):
-                        tk[2], tk[3], tk[4], tk[5], tk[6], tk[7], tk[8], tk[9] = "-", "-", "-", "-", "-", "-", "-", "-"
+                        tk[2], tk[3], tk[4], tk[5], tk[6], tk[7], tk[8], tk[9] = "_", "_", "_", "_", "_", "_", "_", "_"
                         continue
                     # fix out of lexikon tokens
                     if (tk[3] in lexOutOfTags):
