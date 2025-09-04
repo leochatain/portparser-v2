@@ -82,7 +82,7 @@ def parseOptions(arguments):
 ### Function - read usual abbreviations
 #################################################
 def getUsualAbbr():
-    infile = open("./src/postproc/usAbbr.tsv", "r")
+    infile = open("usAbbr.tsv", "r")
     abbr = []
     for line in infile:
         if (line[0] == "#"):
@@ -350,7 +350,7 @@ def posprocFix():
                         else:                        # ambiguous in the lex - do nothing
                             pos = tk[3]
                             lem = opLEMMA[0] if (len(opLEMMA) == 1) else tk[2].lower()
-                            feat = opFEATS[0] if (len(opFEATS) == 1) else tk[5]
+                            feat = featsFull(opFEATS[0], abbr, extpos=extpos) if (len(opFEATS) == 1) else featsFull(tk[5], abbr, extpos=extpos)
                     # fix Pron and Det tags - PRON, DET
                     elif (tk[3] in lexPronDetTags):
                         options = lex.pget(tk[1].lower(), tk[3])
@@ -385,7 +385,7 @@ def posprocFix():
                         else:                        # ambiguous in the lex - do nothing
                             pos = tk[3]
                             lem = opLEMMA[0] if (len(opLEMMA) == 1) else tk[2].lower()
-                            feat = opFEATS[0] if (len(opFEATS) == 1) else tk[5]
+                            feat = featsFull(opFEATS[0], abbr, extpos=extpos, prontype=prontype) if (len(opFEATS) == 1) else featsFull(tk[5], abbr, extpos=extpos, prontype=prontype)
                     # fix Open tags - ADJ, INTJ, NOUN, NUM
                     elif (tk[3] in lexOpenTags):
                         options = lex.pget(tk[1].lower(), tk[3])
@@ -423,7 +423,7 @@ def posprocFix():
                         else:                        # ambiguous in the lex - do nothing
                             pos = tk[3]
                             lem = opLEMMA[0] if (len(opLEMMA) == 1) else tk[2].lower()
-                            feat = opFEATS[0] if (len(opFEATS) == 1) else tk[5]
+                            feat = featsFull(opFEATS[0], abbr, extpos=extpos, verbform=None, numtype=None) if (len(opFEATS) == 1) else featsFull(tk[5], abbr, extpos=extpos, verbform=None, numtype=None)
                     # fix Verb tags - AUX, VERB
                     elif (tk[3] in lexVerbTags):
                         options = lex.pget(tk[1].lower(), tk[3])
@@ -468,7 +468,7 @@ def posprocFix():
                         else:                        # ambiguous in the lex - do nothing
                             pos = tk[3]
                             lem = opLEMMA[0] if (len(opLEMMA) == 1) else tk[2].lower()
-                            feat = opFEATS[0] if (len(opFEATS) == 1) else tk[5]
+                            feat = featsFull(opFEATS[0], abbr, extpos=extpos, verbform=None, voicepass=voicepass) if (len(opFEATS) == 1) else featsFull(tk[5], abbr, extpos=extpos, verbform=None, voicepass=voicepass)
                     # do reports and change
                     if (pos != tk[3]):
                         print(b[0], tk[0], tk[1], tk[3], "UPOS", tk[3], pos, sep="\t", file=repfile)
