@@ -82,7 +82,7 @@ def parseOptions(arguments):
 ### Function - read usual abbreviations
 #################################################
 def getUsualAbbr():
-    infile = open("usAbbr.tsv", "r")
+    infile = open("./src/postproc/usAbbr.tsv", "r")
     abbr = []
     for line in infile:
         if (line[0] == "#"):
