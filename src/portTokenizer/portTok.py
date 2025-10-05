@@ -84,7 +84,7 @@ def parseOptions(arguments):
                     model = arguments[i+1]
                     i += 2
                 except:
-                    print("modelo de identificador de sentença não informado - assumindo S000")
+                    print("modelo de identificador de sentença não informado - assumindo S00000")
                     i += 1
             # opção de arquivo de saída (um nome de arquivo)
             elif ((arguments[i][1] == "o") and (len(arguments[i])==2)) or \
