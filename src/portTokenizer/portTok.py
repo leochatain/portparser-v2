@@ -21,16 +21,16 @@
 #
 # Exemplo de utilização:
 #
-# portTok -o sents.conllu -p -m -t -s S0000 sents.txt
+# portTok -o sents.conllu -p -m -t -s S000000 sents.txt
 #
 # Busca as sentenças no arquivo 'sents.txt',
 #   preserva tokens em itens como a) b) i) ii),
 #   corrige pontuações casadas (aspas, parenteses, etc),
 #   remove possíveis MANCHETES que precedem as frases,
-#   usa S0000 como modelo de identificador de sentença e
+#   usa S000000 como modelo de identificador de sentença e
 #   salva as sentenças devidamente tokenizadas no arquivo 'sents.conllu'
 #
-# last edit: 10/31/2024
+# last edit: 10/05/2025
 # created by Lucelene Lopes - lucelene@gmail.com
 
 import sys, os
