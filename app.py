@@ -37,7 +37,7 @@ def make_sentences(path_raw_text, path_text):
 
 def make_conllu(path_text, path_empty_conllu):
     try:
-        outcome = os.system(f'python ./src/portTokenizer/portTok.py -o {path_empty_conllu} -m -s S0000 {path_text}')
+        outcome = os.system(f'python ./src/portTokenizer/portTok.py -o {path_empty_conllu} -m -s S000000 {path_text}')
         return 'T'+str(outcome)
     except Exception as e:
         return str(e)
