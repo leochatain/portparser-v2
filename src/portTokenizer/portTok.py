@@ -43,7 +43,7 @@ lex = lexikon.UDlexPT()
 #################################################
 def parseOptions(arguments):
     # default options
-    output_file, input_file, preserve, match, trim, model = "", [], False, False, False, "S0000"
+    output_file, input_file, preserve, match, trim, model = "", [], False, False, False, "S000000"
     i = 1
     while i < len(arguments):
         if (arguments[i][0] == "-"):
@@ -54,11 +54,11 @@ def parseOptions(arguments):
                       "-m corrige pontuações casadas (aspas, parenteses, etc)", \
                       "-t remove possíveis MANCHETES que precedem as frases", \
                       "Exemplo de utilização:", \
-                      "portTok -o sents.conllu -m -t -s S0000 sents.txt", \
+                      "portTok -o sents.conllu -m -t -s S000000 sents.txt", \
                       "Busca as sentenças no arquivo 'sents.txt',", \
                       "  corrige pontuações casadas (aspas, parenteses, etc),", \
                       "  remove possíveis MANCHETES que precedem as frases", \
-                      "  usa S0000 como modelo de identificador de sentença e"
+                      "  usa S0000000 como modelo de identificador de sentença e"
                       "  salva as sentenças devidamente tokenizadas no arquivo 'sents.conllu''", \
                       sep="\n")
                 return None
@@ -221,10 +221,10 @@ def tagIt(s):
 #  Clear matching punctuations - punctIt (step 3)
 #############################################################################
 def punctIt(s):
-    def notAlpha(sent):
+    def notAlphaNum(sent):
         ans = True
         for c in sent:
-            if c.isalpha():
+            if c.isalpha() or c.isdigit():
                 ans = False
                 break
         return ans
@@ -259,7 +259,7 @@ def punctIt(s):
         S = S.replace("{", "").replace("}", "")
     if (openAligator != closAligator):
         S = S.replace("<", "").replace(">", "")
-    if (S == "") or (notAlpha(S)):
+    if (S == "") or (notAlphaNum(S) and ()):
         return ""
     elif (S[-2:] == "..") and S[-3:] != "...":
         S = S[:-2]+"."
@@ -871,7 +871,8 @@ def dealWith(outfile, sent, SID, preserve, match, trim):
 def portTok():
     if (len(sys.argv) == 1):
         #arguments = ["/Users/pf64/Desktop/alienista/alienista_empty.conllu", "/Users/pf64/Desktop/alienista/alienista.txt", False, True, False, "ATENISTA_SENT0000"]
-        arguments = ["sents.conllu", "sents.txt", True, True, True, "S0000"]
+        #arguments = ["/Users/pf64/Desktop/tst.conllu", "/Users/pf64/Desktop/tst.txt", True, True, True, "S000000"]
+        arguments = ["sents.conllu", "sents.txt", True, True, True, "S000000"]
         print("Assumindo default: 'sents.conllu' como arquivo de saída, 'sents.txt' como arquivo de entrada, correções, remoções e S0000 como sid.")
     else:
         arguments = parseOptions(sys.argv)
