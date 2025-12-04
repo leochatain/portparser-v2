@@ -24,7 +24,6 @@
 
 import os
 import argparse
-from typing import TextIO
 
 
 #################################################
@@ -72,49 +71,75 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     
     return parser.parse_args(argv)
 
+def _clean_sentence(sent: str) -> str | None:
+    """
+    Clean and normalize a sentence for output.
+    
+    Returns the cleaned sentence, or None if it should be skipped.
+    """
+    # do not print empty sentences
+    if (sent == "") or (sent == ".") or (sent == ".."):
+        return None
+    # remove second . in sentences ending by ..
+    elif (len(sent) > 2) and (sent[-3:] != "...") and (sent[-2:] == ".."):
+        return sent[:-1]
+    # insert . in sentences not ending by punctuation
+    elif (sent[-1] not in [".", "!", "?", ":", ";"]) and \
+        not ((sent[-1] in ["'", '"']) and (sent[-2] in [".", "!", "?"])):
+        return sent + "."
+    # remove encompassing quotations " or ' if the quotations do not appear inside the sentence
+    elif (sent[0] == sent[1]) and ((sent[0] == "'") or (sent[0] == '"')) and (sent.count(sent[0]) == 2):
+        return sent[1:-1]
+    # otherwise return it as it is
+    else:
+        return sent
+
+
+def _is_abbrev(chunk: str, abbrev: list[str]) -> bool:
+    """Check if chunk ends with a known abbreviation."""
+    abbr = False
+    for a in abbrev:
+        if (chunk == a):
+            abbr = True
+            break
+        else:
+            lasts = -len(a)
+            if (chunk[lasts:] == a) and (not chunk[lasts-1].isalpha()):
+                abbr = True
+                break
+    return abbr
+
+
 #################################################
 ### função stripSents - faz de fato o sentenciamento
 #################################################
-def stripSents(inputText: str, outfile: TextIO, limit: int, replace: bool) -> int:
-    def cleanPrint(sent: str, outfile: TextIO) -> int:
-        # do not print empty sentences
-        if (sent == "") or (sent == ".") or (sent == ".."):
-            return 0
-        # remove second . in sentences ending by ..
-        elif (len(sent) > 2) and (sent[-3:] != "...") and (sent[-2:] == ".."):
-            print(sent[:-1], file=outfile)
-            return 1
-        # insert . in sentences not ending by punctuation
-        elif (sent[-1] not in [".", "!", "?", ":", ";"]) and \
-            not ((sent[-1] in ["'", '"']) and (sent[-2] in [".", "!", "?"])):
-            print(sent+".", file=outfile)
-            return 1
-        # remove encompassing quotations " or ' if the quotations do not appear inside the sentence
-        elif (sent[0] == sent[1]) and ((sent[0] == "'") or (sent[0] == '"')) and (sent.count(sent[0]) == 2):
-            print(sent[1:-1], file=outfile)
-            return 1
-        # otherwise print it as it is
-        else:
-            print(sent, file=outfile)
-            return 1
-    def isAbbrev(chunk: str, abbrev: list[str]) -> bool:
-        abbr = False
-        for a in abbrev:
-            if (chunk == a):
-                abbr = True
-                break
-            else:
-                lasts = -len(a)
-                if (chunk[lasts:] == a) and (not chunk[lasts-1].isalpha()):
-                    abbr = True
-                    break
-        return abbr
-    # the function stripSents main body
+def stripSents(inputText: str, limit: int = 0, replace: bool = True) -> list[str]:
+    """
+    Segment input text into sentences.
+    
+    Args:
+        inputText: The text to segment into sentences.
+        limit: Maximum characters per sentence, 0 for no limit.
+        replace: Whether to replace non-standard characters.
+    
+    Returns:
+        A list of sentences.
+    """
+    sentences: list[str] = []
+    
+    def add_sentence(sent: str) -> None:
+        """Clean and add sentence to the list if valid."""
+        cleaned = _clean_sentence(sent)
+        if cleaned is not None:
+            sentences.append(cleaned)
+    
+    # Load abbreviations
     abbrev = []
     infile = open("./src/portSentencer/abbrev.txt", "r")
     for line in infile:
         abbrev.append(line[:-1])
     infile.close()
+    
     if (replace):
         replaceables = [[" ", " "], \
                         ["—", "-"], ["–", "-"], \
@@ -138,14 +163,14 @@ def stripSents(inputText: str, outfile: TextIO, limit: int, replace: bool) -> in
     if (tmp[0] == " "):
         tmp = tmp[1:]
     bagOfChunks = tmp.split(" ")
-    s, sent = 0, ""
+    sent = ""
     if (bagOfChunks[-1] == ""):
         bagOfChunks.pop()
     for i in range(len(bagOfChunks)):
         # if it is the last chunk, it is the end of sentence
         if (i == len(bagOfChunks)-1):
             sent += " " + bagOfChunks[i]
-            s += cleanPrint(sent[1:], outfile)
+            add_sentence(sent[1:])
             break
         chunk = bagOfChunks[i]
         # if there is a limit and the chunk is greater than the limit, discard it
@@ -153,7 +178,7 @@ def stripSents(inputText: str, outfile: TextIO, limit: int, replace: bool) -> in
             continue
         # if there is a limit and it is reached, ends the sentence arbitrarily
         elif (limit != 0) and (len(sent) + len(chunk) > limit):
-            s += cleanPrint(sent[1:], outfile)
+            add_sentence(sent[1:])
             sent = chunk
         # if the chunk is too short
         elif (len(chunk) < 3) and (len(chunk) != 0):
@@ -164,7 +189,7 @@ def stripSents(inputText: str, outfile: TextIO, limit: int, replace: bool) -> in
         # ! ? or ... always mark an end of sentence
         elif (chunk[-3:] == "...") or (chunk[-1] == "!") or (chunk[-1] == "?"):
             sent += " " + chunk
-            s += cleanPrint(sent[1:], outfile)
+            add_sentence(sent[1:])
             sent = ""
         # a . : or ; followed by a lowercase chunk is not an end of sentence
         elif ((chunk[-1] == ".") or (chunk[-1] == ":") or (chunk[-1] == ";")) and (bagOfChunks[i+1][0].islower()):
@@ -172,33 +197,29 @@ def stripSents(inputText: str, outfile: TextIO, limit: int, replace: bool) -> in
         # a : or ; not followed by a lowercase chunk is an end of sentence
         elif ((chunk[-1] == ":") or (chunk[-1] == ";")) and (not bagOfChunks[i+1][0].islower()):
             sent += " " + chunk
-            s += cleanPrint(sent[1:], outfile)
+            add_sentence(sent[1:])
             sent = ""
         # chunk ends with ! or ? followed by quotations that had appear before an odd number is an end of sentence
         elif (chunk[-2:] in ["!'", '!"', "?'", '?"']):
             sent += " " + chunk
-            s += cleanPrint(sent[1:], outfile)
+            add_sentence(sent[1:])
             sent = ""
         elif (chunk[-2:] in [".'", '."']):
             sent += " " + chunk
-            abbr = isAbbrev(chunk[:-1], abbrev)
-            if not abbr:
-                s += cleanPrint(sent[1:], outfile)
+            if not _is_abbrev(chunk[:-1], abbrev):
+                add_sentence(sent[1:])
                 sent = ""
         # a chunk not ending with ! ? ... ; : or . is not an end of sentence
         elif (chunk[-1] != "."):
             sent += " " + chunk
         # chunk ending by . is either a know abbreviation (not an end of sentence), or an end of sentence
         elif (chunk[-1] == "."):
-            abbr = isAbbrev(chunk, abbrev)
-            if (abbr):
-                sent += " " + chunk
-            else:
-                sent += " " + chunk
-                s += cleanPrint(sent[1:], outfile)
+            sent += " " + chunk
+            if not _is_abbrev(chunk, abbrev):
+                add_sentence(sent[1:])
                 sent = ""
-    # return the number of generated sentences
-    return s
+    
+    return sentences
 
 #################################################
 ### função principal do programa - busca argumentos e chama 'stripSents' que faz de fato o sentenciamento
@@ -206,14 +227,18 @@ def stripSents(inputText: str, outfile: TextIO, limit: int, replace: bool) -> in
 def main() -> None:
     args = parse_args()
     
-    with open(args.output_file, "w") as outfile:
-        input_text = ""
-        for input_path in args.input_files:
-            with open(input_path, "r") as infile:
-                input_text += infile.read()
-        s = stripSents(input_text, outfile, args.limit, args.replace)
+    input_text = ""
+    for input_path in args.input_files:
+        with open(input_path, "r") as infile:
+            input_text += infile.read()
     
-    print(f"Sentenciamento terminado com {s} sentenças extraídas e salvas em {args.output_file}")
+    sentences = stripSents(input_text, limit=args.limit, replace=args.replace)
+    
+    with open(args.output_file, "w") as outfile:
+        for sentence in sentences:
+            outfile.write(sentence + "\n")
+    
+    print(f"Sentenciamento terminado com {len(sentences)} sentenças extraídas e salvas em {args.output_file}")
 
 
 if __name__ == "__main__":
