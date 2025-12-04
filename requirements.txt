@@ -1,7 +1,0 @@
-keras
-torch
-transformers
-ufal.chu-liu-edmonds
-streamlit
-pandas
-huggingface_hub
