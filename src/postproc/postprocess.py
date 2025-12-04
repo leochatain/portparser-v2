@@ -15,68 +15,62 @@
 #        -f or -feats      to perform only the features corrections
 #        -q or -quiet      to not generate the changes report (.rep.tsv)
 ##################
-import sys, os
+import os
+import argparse
 import lexikon
 from conlluFile import conlluFile
 lex = lexikon.UDlexPT()
 
 #################################################
-### Function CMD line arguments capture
+### Captura de argumentos da linha de comando
 #################################################
-def parseOptions(arguments):
-    # default options, doLemma e doFeats alteráveis para True, se ambos False
-    output_file, input_file, doLemma, doFeats, quiet = "", "", False, False, False
-    #print(arguments)
-    i = 1
-    while i < len(arguments):
-        if (arguments[i][0] == "-"):
-            # ajuda (help) - mostra ajuda, nada é executado
-            if ((arguments[i][1] == "h") and (len(arguments[i])==2)) or \
-               (arguments[i] == "-help"):
-                print("Opções:\n-h ajuda\n-o arquivo de saída", \
-                      "\n-l executa apenas correção de lemma", \
-                      "\n-f executa apenas correção de features", \
-                      "\n-q não salva relatório (correção Quieta)", \
-                      "\nExemplo de utilização:", \
-                      "\n   python3 postproc.py -o yyy.conllu xxx.conllu", \
-                      "\nBusca as sentenças no arquivo 'xxx.conllu',", \
-                      "  corrige lemmas e features e salva as", \
-                      "  sentenças no arquivo 'yyy.conllu''", \
-                      sep="")
-                return None
-            # faz correção de lemma
-            elif ((arguments[i][1] == "l") and (len(arguments[i])==2)) or \
-               (arguments[i] == "-lemma"):
-                doLemma = True
-                i += 1
-            # faz correção de feats
-            elif ((arguments[i][1] == "f") and (len(arguments[i])==2)) or \
-               (arguments[i] == "-feats"):
-                doFeats = True
-                i += 1
-            # modo quieto (sem relatório)
-            elif ((arguments[i][1] == "q") and (len(arguments[i])==2)) or \
-               (arguments[i] == "-quiet"):
-                quiet = True
-                i += 1
-            # arquivo de saída
-            elif ((arguments[i][1] == "o") and (len(arguments[i])==2)) or \
-               (arguments[i] == "-output"):
-                output_file = arguments[i+1]
-                i += 2
-        # arquivo de entrada - último parâmetro (sem -i antes)
-        else:
-            if (os.path.isfile(arguments[i])):
-                input_file = arguments[i]
-                break
-            else:
-                print("O arquivo {} não foi encontrado, por favor execute novamente".format(arguments[i]))
-                return None
-    if (not doLemma and not doFeats):
-        doLemma, doFeats = True, True
-    #print(output_file, input_file, doLemma, doFeats)
-    output_file, input_file = arguments[2], arguments[3]
-    return [output_file, input_file, doLemma, doFeats, quiet]
+def _existing_file(path: str) -> str:
+    """Argparse type that validates file exists."""
+    if not os.path.isfile(path):
+        raise argparse.ArgumentTypeError(f"O arquivo '{path}' não foi encontrado")
+    return path
+
+
+def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
+    """Parse command-line arguments using argparse."""
+    parser = argparse.ArgumentParser(
+        prog="postprocess",
+        description="Pós-processamento para correção de UPOS, LEMMA e FEATS em arquivos CoNLL-U",
+        epilog="Exemplo: python postprocess.py -o output.conllu input.conllu"
+    )
+    
+    parser.add_argument(
+        "input_file",
+        type=_existing_file,
+        help="Arquivo de entrada CoNLL-U"
+    )
+    parser.add_argument(
+        "-o", "--output",
+        dest="output_file",
+        default="xxx.conllu",
+        help="Arquivo de saída CoNLL-U (default: %(default)s)"
+    )
+    parser.add_argument(
+        "-l", "--lemma", "--no-lemma",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="Executa correção de lemma (default: %(default)s)"
+    )
+    parser.add_argument(
+        "-f", "--feats", "--no-feats",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="Executa correção de features (default: %(default)s)"
+    )
+    parser.add_argument(
+        "-q", "--quiet",
+        action="store_true",
+        default=False,
+        help="Não gera relatório de mudanças (.rep.tsv)"
+    )
+    
+    return parser.parse_args(argv)
+
 
 #################################################
 ### Function - read usual abbreviations
@@ -244,7 +238,9 @@ def sepLEMMA_FEATS(options):
 #################################################
 ### Main Function - Postprocess fix of UPOS, LEMMA and FEATS
 #################################################
-def posprocFix():
+def main() -> None:
+    args = parse_args()
+    
     # if compound word                                 # fix - replace upper case in Lemma only
     # if the word is within known unambiguous abbr     # correct arbitrarily
     lexOutOfTags   = ["PROPN", "PUNCT", "SYM", "X"]    # correct arbitrarily
@@ -257,235 +253,234 @@ def posprocFix():
     ordinalsignsMasc = ['º', '°', 'o']
     ordinalsignsNeut = ['.']
 
-    if (len(sys.argv) == 1):
-        arguments = ["xxx.conllu", "yyy.conllu", True, True, False] # output file, input file, do lemmas, do features, run quiet(false)
-        print("Assumindo default: 'yyy.conllu' como arquivo de entrada, 'xxx.conllu' como arquivo de saída, e executando correção de lemas e features.")
-    else:
-        arguments = parseOptions(sys.argv)
-    if (arguments != None):
-        if (arguments[0] == ""):
-            print("Assumindo 'xxx.conllu' como arquivo de saída")
-            arguments[0] = 'xxx.conllu'
-        if not os.path.isfile(arguments[1]):
-            print(arguments[1], "Arquivo de entrada inválido - por favor corrija e tente novamente")
-        else:
-            outfile = open(arguments[0], "w")
-            if (not arguments[4]): repfile = open(arguments[0]+".rep.tsv", "w")
-            base = conlluFile(arguments[1])
-            # counters
-            accName = ["Pchanged", "Lchanged", "Fchanged"]
-            acc = [0]*len(accName)
-            # usual Abbr (read from .tsv with "form", "kind", "UPOS", "LEMMA", "FEATS")
-            usualAbbr = getUsualAbbr()
-            # main loop
-            for i in range(base.getS()):
-                b = base.getSentByIndex(i)
-                fixeds = locateExtPos(b[4])
-                for tk in b[4]:
-                    # level down contracted tokens info, but ID and FORM
-                    if ("-" in tk[0]):
-                        tk[2], tk[3], tk[4], tk[5], tk[6], tk[7], tk[8], tk[9] = "_", "_", "_", "_", "_", "_", "_", "_"
-                        continue
-                    # fix out of lexikon tokens
-                    if (tk[3] in lexOutOfTags):
-                        if (tk[3] in ["PROPN", "PUNCT", "SYM"]):
-                            pos, lem, feat = tk[3], tk[1], "_"
-                        elif (tk[3] == "X"):
-                            if ("Foreign=Yes" in tk[5]):
-                                pos, lem, feat = tk[3], tk[1], "Foreign=Yes"
-                            else:
-                                pos, lem, feat = tk[3], tk[1], "_"
-                    # fix only lemma in compound words
-                    elif ("-" in tk[1]):
-                        pos, lem, feat = fixCompoundUpper(tk[1], tk[2], tk[3], tk[5])
-                    # fix known abbreviations
-                    elif (isAbbr(usualAbbr, tk[1].lower())) and (tk[3] in ["ADP", "NOUN"]):
-                        pos, lem, feat = isWithin(usualAbbr, tk[1].lower())
-                    # fix numerical NUM, ADJ, NOUN
-                    elif (tk[3] in ["ADJ", "NOUN", "NUM"]) and (not tk[1].isalpha()):
-                        if (tk[3] == "NOUN"):
-                            pos, lem, feat = tk[3], tk[1], "_"
-                        elif (tk[3] == "ADJ"):
-                            if (tk[1][-1] in ordinalsignsMasc):
-                                pos, lem, feat = tk[3], tk[1], "Gender=Masc|NumType=Ord"
-                            elif (tk[1][-1] in ordinalsignsFem):
-                                pos, lem, feat = tk[3], tk[1], "Gender=Fem|NumType=Ord"
-                            elif (tk[1][-1] in ordinalsignsNeut):
-                                pos, lem, feat = tk[3], tk[1], "NumType=Ord"
-                            else:
-                                pos, lem, feat = tk[3], tk[1], "_"
-                        elif (tk[3] == "NUM"):
-                            if (tk[1][-1] in ordinalsignsMasc):
-                                pos, lem, feat = tk[3], tk[1], "Gender=Masc|NumType=Ord"
-                            elif (tk[1][-1] in ordinalsignsFem):
-                                pos, lem, feat = tk[3], tk[1], "Gender=Fem|NumType=Ord"
-                            elif (tk[1][-1] in ordinalsignsNeut):
-                                pos, lem, feat = tk[3], tk[1], "NumType=Ord"
-                            else:
-                                pos, lem, feat = tk[3], tk[1], "NumType=Card"
-                    # fix closed tags - ADP, ADV, CCONJ, SCONJ
-                    elif (tk[3] in lexCloseTags):
-                        options = lex.pget(tk[1].lower(), tk[3])
-                        opLEMMA, opFEATS = sepLEMMA_FEATS(options)
-                        abbr = ("Abbr=Yes" in tk[5]) and (tk[1].lower() != tk[2])
-                        if (tk[0] in fixeds):
-                            if   (tk[7] == "cc"):
-                                extpos = "CCONJ"
-                            elif (tk[7] == "advmod"):
-                                extpos = "ADV"
-                            elif (tk[7] == "case"):
-                                extpos = "ADP"
-                            elif (tk[7] == "mark"):
-                                extpos = "SCONJ"
-                            elif (tk[3] == "PRON"):
-                                extpos = "PRON"
-                            else:
-                                extpos = tk[3]
-                        else:
-                            extpos = ""
-                        if (len(options) == 0):      # out of the lex
-                            pos, lem, feat = tk[3], tk[2].lower(), featsFull("_", abbr, extpos=extpos)
-                        elif (len(options) == 1):    # unambiguous in the lex
-                            pos, lem, feat = tk[3], options[0][0], featsFull(options[0][2], abbr, extpos=extpos)
-                        else:                        # ambiguous in the lex - do nothing
-                            pos = tk[3]
-                            lem = opLEMMA[0] if (len(opLEMMA) == 1) else tk[2].lower()
-                            feat = featsFull(opFEATS[0], abbr, extpos=extpos) if (len(opFEATS) == 1) else featsFull(tk[5], abbr, extpos=extpos)
-                    # fix Pron and Det tags - PRON, DET
-                    elif (tk[3] in lexPronDetTags):
-                        options = lex.pget(tk[1].lower(), tk[3])
-                        opLEMMA, opFEATS = sepLEMMA_FEATS(options)
-                        abbr = ("Abbr=Yes" in tk[5]) and ((tk[1].lower() != tk[2]) or ("/" in tk[1]) or ("." in tk[1]))
-                        if (tk[0] in fixeds):
-                            if   (tk[7] == "cc"):
-                                extpos = "CCONJ"
-                            elif (tk[7] == "advmod"):
-                                extpos = "ADV"
-                            elif (tk[7] == "case"):
-                                extpos = "ADP"
-                            elif (tk[7] == "mark"):
-                                extpos = "SCONJ"
-                            elif (tk[3] == "PRON"):
-                                extpos = "PRON"
-                            else:
-                                extpos = tk[3]
-                        else:
-                            extpos = ""
-                        if ("PronType" in tk[5]):
-                            idx = tk[5].index("PronType=")+9
-                            prontype = tk[5][idx:idx+3]
-                        elif (tk[3] == "PRON"):
-                            prontype = "Dem"
-                        elif (tk[3] == "DET"):
-                            prontype = "Art"
-                        if (len(options) == 0):      # out of the lex
-                            pos, lem, feat = tk[3], tk[2].lower(), featsFull(tk[5], abbr, extpos=extpos, prontype=prontype)
-                        elif (len(options) == 1):    # unambiguous in the lex
-                            pos, lem, feat = tk[3], options[0][0], featsFull(options[0][2], abbr, extpos=extpos, prontype=None)
-                        else:                        # ambiguous in the lex - do nothing
-                            pos = tk[3]
-                            lem = opLEMMA[0] if (len(opLEMMA) == 1) else tk[2].lower()
-                            feat = featsFull(opFEATS[0], abbr, extpos=extpos, prontype=prontype) if (len(opFEATS) == 1) else featsFull(tk[5], abbr, extpos=extpos, prontype=prontype)
-                    # fix Open tags - ADJ, INTJ, NOUN, NUM
-                    elif (tk[3] in lexOpenTags):
-                        options = lex.pget(tk[1].lower(), tk[3])
-                        opLEMMA, opFEATS = sepLEMMA_FEATS(options)
-                        abbr = ("Abbr=Yes" in tk[5]) and ((tk[1].lower() != tk[2]) or ("/" in tk[1]) or ("." in tk[1]))
-                        if (tk[0] in fixeds):
-                            if   (tk[7] == "cc"):
-                                extpos = "CCONJ"
-                            elif (tk[7] == "advmod"):
-                                extpos = "ADV"
-                            elif (tk[7] == "case"):
-                                extpos = "ADP"
-                            elif (tk[7] == "mark"):
-                                extpos = "SCONJ"
-                            elif (tk[3] == "PRON"):
-                                extpos = "PRON"
-                            else:
-                                extpos = tk[3]
-                        else:
-                            extpos = ""
-                        if ("VerbForm=Part" in tk[5]) and (tk[3] == "ADJ"):
-                            verbform = "Part"
-                        else:
-                            verbform = ""
-                        if ("NumType=Ord" in tk[5]) and (tk[3] in ["ADJ", "NUM"]):
-                            numtype = "Ord"
-                        elif ("NumType=Card" in tk[5]) and (tk[3] == "NUM"):
-                            numtype = "Card"
-                        else:
-                            numtype = ""
-                        if (len(options) == 0):      # out of the lex
-                            pos, lem, feat = tk[3], tk[2].lower(), featsFull(tk[5], abbr, extpos=extpos, verbform=verbform, numtype=numtype)
-                        elif (len(options) == 1):    # unambiguous in the lex
-                            pos, lem, feat = tk[3], options[0][0], featsFull(options[0][2], abbr, extpos=extpos, verbform=None, numtype=None)
-                        else:                        # ambiguous in the lex - do nothing
-                            pos = tk[3]
-                            lem = opLEMMA[0] if (len(opLEMMA) == 1) else tk[2].lower()
-                            feat = featsFull(opFEATS[0], abbr, extpos=extpos, verbform=None, numtype=None) if (len(opFEATS) == 1) else featsFull(tk[5], abbr, extpos=extpos, verbform=None, numtype=None)
-                    # fix Verb tags - AUX, VERB
-                    elif (tk[3] in lexVerbTags):
-                        options = lex.pget(tk[1].lower(), tk[3])
-                        opLEMMA, opFEATS = sepLEMMA_FEATS(options)
-                        abbr = ("Abbr=Yes" in tk[5]) and (tk[1].lower() != tk[2])
-                        if (tk[0] in fixeds):
-                            if   (tk[7] == "cc"):
-                                extpos = "CCONJ"
-                            elif (tk[7] == "advmod"):
-                                extpos = "ADV"
-                            elif (tk[7] == "case"):
-                                extpos = "ADP"
-                            elif (tk[7] == "mark"):
-                                extpos = "SCONJ"
-                            elif (tk[3] == "PRON"):
-                                extpos = "PRON"
-                            else:
-                                extpos = tk[3]
-                        else:
-                            extpos = ""
-                        if   ("VerbForm=Inf" in tk[5]):
-                            verbform = "Inf"
-                        elif ("VerbForm=Ger" in tk[5]):
-                            verbform = "Ger"
-                        elif ("VerbForm=Part" in tk[5]):
-                            verbform = "Part"
-                        elif ("VerbForm=Fin" in tk[5]):
-                            verbform = "Fin"
-                        else:
-                            if (tk[1][-1].lower() == "r"):
-                                verbform = "Inf"
-                            else:
-                                verbform = "Fin"
-                        if ("Voice=Pass" in tk[5]):
-                            voicepass = True
-                        else:
-                            voicepass = False
-                        if (len(options) == 0):      # out of the lex
-                            pos, lem, feat = tk[3], tk[2].lower(), featsFull(tk[5], abbr, extpos=extpos, verbform=verbform, voicepass=voicepass)
-                        elif (len(options) == 1):    # unambiguous in the lex
-                            pos, lem, feat = tk[3], options[0][0], featsFull(options[0][2], abbr, extpos=extpos, verbform=None, voicepass=voicepass)
-                        else:                        # ambiguous in the lex - do nothing
-                            pos = tk[3]
-                            lem = opLEMMA[0] if (len(opLEMMA) == 1) else tk[2].lower()
-                            feat = featsFull(opFEATS[0], abbr, extpos=extpos, verbform=None, voicepass=voicepass) if (len(opFEATS) == 1) else featsFull(tk[5], abbr, extpos=extpos, verbform=None, voicepass=voicepass)
-                    # do reports and change
-                    if (pos != tk[3]):
-                        print(b[0], tk[0], tk[1], tk[3], "UPOS", tk[3], pos, sep="\t", file=repfile)
-                        acc[accName.index("Pchanged")] += 1
-                        tk[3] = pos
-                    if (lem != tk[2]):
-                        print(b[0], tk[0], tk[1], tk[3], "LEMMA", tk[2], lem, sep="\t", file=repfile)
-                        acc[accName.index("Lchanged")] += 1
-                        tk[2] = lem
-                    if (feat != tk[5]):
-                        if ("ExtPos=" not in feat):
-                            print(b[0], tk[0], tk[1], tk[3], "FEATS", tk[5], feat, sep="\t", file=repfile)
-                            acc[accName.index("Fchanged")] += 1
-                        tk[5] = feat
-            if (not arguments[4]): print_reps(repfile, accName, acc)
-            if (not arguments[4]): repfile.close()
-            base.printNoHeader(outfile)
-            outfile.close()
+    outfile = open(args.output_file, "w")
+    repfile = None
+    if not args.quiet:
+        repfile = open(args.output_file + ".rep.tsv", "w")
+    base = conlluFile(args.input_file)
+    # counters
+    accName = ["Pchanged", "Lchanged", "Fchanged"]
+    acc = [0]*len(accName)
+    # usual Abbr (read from .tsv with "form", "kind", "UPOS", "LEMMA", "FEATS")
+    usualAbbr = getUsualAbbr()
+    # main loop
+    for i in range(base.getS()):
+        b = base.getSentByIndex(i)
+        fixeds = locateExtPos(b[4])
+        for tk in b[4]:
+            # level down contracted tokens info, but ID and FORM
+            if ("-" in tk[0]):
+                tk[2], tk[3], tk[4], tk[5], tk[6], tk[7], tk[8], tk[9] = "_", "_", "_", "_", "_", "_", "_", "_"
+                continue
+            # fix out of lexikon tokens
+            if (tk[3] in lexOutOfTags):
+                if (tk[3] in ["PROPN", "PUNCT", "SYM"]):
+                    pos, lem, feat = tk[3], tk[1], "_"
+                elif (tk[3] == "X"):
+                    if ("Foreign=Yes" in tk[5]):
+                        pos, lem, feat = tk[3], tk[1], "Foreign=Yes"
+                    else:
+                        pos, lem, feat = tk[3], tk[1], "_"
+            # fix only lemma in compound words
+            elif ("-" in tk[1]):
+                pos, lem, feat = fixCompoundUpper(tk[1], tk[2], tk[3], tk[5])
+            # fix known abbreviations
+            elif (isAbbr(usualAbbr, tk[1].lower())) and (tk[3] in ["ADP", "NOUN"]):
+                pos, lem, feat = isWithin(usualAbbr, tk[1].lower())
+            # fix numerical NUM, ADJ, NOUN
+            elif (tk[3] in ["ADJ", "NOUN", "NUM"]) and (not tk[1].isalpha()):
+                if (tk[3] == "NOUN"):
+                    pos, lem, feat = tk[3], tk[1], "_"
+                elif (tk[3] == "ADJ"):
+                    if (tk[1][-1] in ordinalsignsMasc):
+                        pos, lem, feat = tk[3], tk[1], "Gender=Masc|NumType=Ord"
+                    elif (tk[1][-1] in ordinalsignsFem):
+                        pos, lem, feat = tk[3], tk[1], "Gender=Fem|NumType=Ord"
+                    elif (tk[1][-1] in ordinalsignsNeut):
+                        pos, lem, feat = tk[3], tk[1], "NumType=Ord"
+                    else:
+                        pos, lem, feat = tk[3], tk[1], "_"
+                elif (tk[3] == "NUM"):
+                    if (tk[1][-1] in ordinalsignsMasc):
+                        pos, lem, feat = tk[3], tk[1], "Gender=Masc|NumType=Ord"
+                    elif (tk[1][-1] in ordinalsignsFem):
+                        pos, lem, feat = tk[3], tk[1], "Gender=Fem|NumType=Ord"
+                    elif (tk[1][-1] in ordinalsignsNeut):
+                        pos, lem, feat = tk[3], tk[1], "NumType=Ord"
+                    else:
+                        pos, lem, feat = tk[3], tk[1], "NumType=Card"
+            # fix closed tags - ADP, ADV, CCONJ, SCONJ
+            elif (tk[3] in lexCloseTags):
+                options = lex.pget(tk[1].lower(), tk[3])
+                opLEMMA, opFEATS = sepLEMMA_FEATS(options)
+                abbr = ("Abbr=Yes" in tk[5]) and (tk[1].lower() != tk[2])
+                if (tk[0] in fixeds):
+                    if   (tk[7] == "cc"):
+                        extpos = "CCONJ"
+                    elif (tk[7] == "advmod"):
+                        extpos = "ADV"
+                    elif (tk[7] == "case"):
+                        extpos = "ADP"
+                    elif (tk[7] == "mark"):
+                        extpos = "SCONJ"
+                    elif (tk[3] == "PRON"):
+                        extpos = "PRON"
+                    else:
+                        extpos = tk[3]
+                else:
+                    extpos = ""
+                if (len(options) == 0):      # out of the lex
+                    pos, lem, feat = tk[3], tk[2].lower(), featsFull("_", abbr, extpos=extpos)
+                elif (len(options) == 1):    # unambiguous in the lex
+                    pos, lem, feat = tk[3], options[0][0], featsFull(options[0][2], abbr, extpos=extpos)
+                else:                        # ambiguous in the lex - do nothing
+                    pos = tk[3]
+                    lem = opLEMMA[0] if (len(opLEMMA) == 1) else tk[2].lower()
+                    feat = featsFull(opFEATS[0], abbr, extpos=extpos) if (len(opFEATS) == 1) else featsFull(tk[5], abbr, extpos=extpos)
+            # fix Pron and Det tags - PRON, DET
+            elif (tk[3] in lexPronDetTags):
+                options = lex.pget(tk[1].lower(), tk[3])
+                opLEMMA, opFEATS = sepLEMMA_FEATS(options)
+                abbr = ("Abbr=Yes" in tk[5]) and ((tk[1].lower() != tk[2]) or ("/" in tk[1]) or ("." in tk[1]))
+                if (tk[0] in fixeds):
+                    if   (tk[7] == "cc"):
+                        extpos = "CCONJ"
+                    elif (tk[7] == "advmod"):
+                        extpos = "ADV"
+                    elif (tk[7] == "case"):
+                        extpos = "ADP"
+                    elif (tk[7] == "mark"):
+                        extpos = "SCONJ"
+                    elif (tk[3] == "PRON"):
+                        extpos = "PRON"
+                    else:
+                        extpos = tk[3]
+                else:
+                    extpos = ""
+                if ("PronType" in tk[5]):
+                    idx = tk[5].index("PronType=")+9
+                    prontype = tk[5][idx:idx+3]
+                elif (tk[3] == "PRON"):
+                    prontype = "Dem"
+                elif (tk[3] == "DET"):
+                    prontype = "Art"
+                if (len(options) == 0):      # out of the lex
+                    pos, lem, feat = tk[3], tk[2].lower(), featsFull(tk[5], abbr, extpos=extpos, prontype=prontype)
+                elif (len(options) == 1):    # unambiguous in the lex
+                    pos, lem, feat = tk[3], options[0][0], featsFull(options[0][2], abbr, extpos=extpos, prontype=None)
+                else:                        # ambiguous in the lex - do nothing
+                    pos = tk[3]
+                    lem = opLEMMA[0] if (len(opLEMMA) == 1) else tk[2].lower()
+                    feat = featsFull(opFEATS[0], abbr, extpos=extpos, prontype=prontype) if (len(opFEATS) == 1) else featsFull(tk[5], abbr, extpos=extpos, prontype=prontype)
+            # fix Open tags - ADJ, INTJ, NOUN, NUM
+            elif (tk[3] in lexOpenTags):
+                options = lex.pget(tk[1].lower(), tk[3])
+                opLEMMA, opFEATS = sepLEMMA_FEATS(options)
+                abbr = ("Abbr=Yes" in tk[5]) and ((tk[1].lower() != tk[2]) or ("/" in tk[1]) or ("." in tk[1]))
+                if (tk[0] in fixeds):
+                    if   (tk[7] == "cc"):
+                        extpos = "CCONJ"
+                    elif (tk[7] == "advmod"):
+                        extpos = "ADV"
+                    elif (tk[7] == "case"):
+                        extpos = "ADP"
+                    elif (tk[7] == "mark"):
+                        extpos = "SCONJ"
+                    elif (tk[3] == "PRON"):
+                        extpos = "PRON"
+                    else:
+                        extpos = tk[3]
+                else:
+                    extpos = ""
+                if ("VerbForm=Part" in tk[5]) and (tk[3] == "ADJ"):
+                    verbform = "Part"
+                else:
+                    verbform = ""
+                if ("NumType=Ord" in tk[5]) and (tk[3] in ["ADJ", "NUM"]):
+                    numtype = "Ord"
+                elif ("NumType=Card" in tk[5]) and (tk[3] == "NUM"):
+                    numtype = "Card"
+                else:
+                    numtype = ""
+                if (len(options) == 0):      # out of the lex
+                    pos, lem, feat = tk[3], tk[2].lower(), featsFull(tk[5], abbr, extpos=extpos, verbform=verbform, numtype=numtype)
+                elif (len(options) == 1):    # unambiguous in the lex
+                    pos, lem, feat = tk[3], options[0][0], featsFull(options[0][2], abbr, extpos=extpos, verbform=None, numtype=None)
+                else:                        # ambiguous in the lex - do nothing
+                    pos = tk[3]
+                    lem = opLEMMA[0] if (len(opLEMMA) == 1) else tk[2].lower()
+                    feat = featsFull(opFEATS[0], abbr, extpos=extpos, verbform=None, numtype=None) if (len(opFEATS) == 1) else featsFull(tk[5], abbr, extpos=extpos, verbform=None, numtype=None)
+            # fix Verb tags - AUX, VERB
+            elif (tk[3] in lexVerbTags):
+                options = lex.pget(tk[1].lower(), tk[3])
+                opLEMMA, opFEATS = sepLEMMA_FEATS(options)
+                abbr = ("Abbr=Yes" in tk[5]) and (tk[1].lower() != tk[2])
+                if (tk[0] in fixeds):
+                    if   (tk[7] == "cc"):
+                        extpos = "CCONJ"
+                    elif (tk[7] == "advmod"):
+                        extpos = "ADV"
+                    elif (tk[7] == "case"):
+                        extpos = "ADP"
+                    elif (tk[7] == "mark"):
+                        extpos = "SCONJ"
+                    elif (tk[3] == "PRON"):
+                        extpos = "PRON"
+                    else:
+                        extpos = tk[3]
+                else:
+                    extpos = ""
+                if   ("VerbForm=Inf" in tk[5]):
+                    verbform = "Inf"
+                elif ("VerbForm=Ger" in tk[5]):
+                    verbform = "Ger"
+                elif ("VerbForm=Part" in tk[5]):
+                    verbform = "Part"
+                elif ("VerbForm=Fin" in tk[5]):
+                    verbform = "Fin"
+                else:
+                    if (tk[1][-1].lower() == "r"):
+                        verbform = "Inf"
+                    else:
+                        verbform = "Fin"
+                if ("Voice=Pass" in tk[5]):
+                    voicepass = True
+                else:
+                    voicepass = False
+                if (len(options) == 0):      # out of the lex
+                    pos, lem, feat = tk[3], tk[2].lower(), featsFull(tk[5], abbr, extpos=extpos, verbform=verbform, voicepass=voicepass)
+                elif (len(options) == 1):    # unambiguous in the lex
+                    pos, lem, feat = tk[3], options[0][0], featsFull(options[0][2], abbr, extpos=extpos, verbform=None, voicepass=voicepass)
+                else:                        # ambiguous in the lex - do nothing
+                    pos = tk[3]
+                    lem = opLEMMA[0] if (len(opLEMMA) == 1) else tk[2].lower()
+                    feat = featsFull(opFEATS[0], abbr, extpos=extpos, verbform=None, voicepass=voicepass) if (len(opFEATS) == 1) else featsFull(tk[5], abbr, extpos=extpos, verbform=None, voicepass=voicepass)
+            # do reports and change
+            if (pos != tk[3]):
+                if repfile:
+                    print(b[0], tk[0], tk[1], tk[3], "UPOS", tk[3], pos, sep="\t", file=repfile)
+                acc[accName.index("Pchanged")] += 1
+                tk[3] = pos
+            if (lem != tk[2]):
+                if repfile:
+                    print(b[0], tk[0], tk[1], tk[3], "LEMMA", tk[2], lem, sep="\t", file=repfile)
+                acc[accName.index("Lchanged")] += 1
+                tk[2] = lem
+            if (feat != tk[5]):
+                if ("ExtPos=" not in feat):
+                    if repfile:
+                        print(b[0], tk[0], tk[1], tk[3], "FEATS", tk[5], feat, sep="\t", file=repfile)
+                    acc[accName.index("Fchanged")] += 1
+                tk[5] = feat
 
-posprocFix()
+    if repfile:
+        print_reps(repfile, accName, acc)
+        repfile.close()
+    base.printNoHeader(outfile)
+    outfile.close()
+
+    print(f"Pós-processamento concluído. Resultado salvo em {args.output_file}")
+
+
+if __name__ == "__main__":
+    main()

@@ -22,70 +22,61 @@
 # last edit: 01/21/2024
 # created by Lucelene Lopes - lucelene@gmail.com
 
-import sys, os
+import os
+import argparse
+from typing import TextIO
+
 
 #################################################
 ### Captura de argumentos da linha de comando
 #################################################
-def parseOptions(arguments):
-    # default options
-    output_file, input_files, replace, limit = "", [], False, 0
-    i = 1
-    while i < len(arguments):
-        if (arguments[i][0] == "-"):
-            # ajuda (help) - mostra ajuda, nada é executado
-            if ((arguments[i][1] == "h") and (len(arguments[i])==2)) or \
-               (arguments[i] == "-help"):
-                print("Opções:\n-h ajuda\n-o arquivo de saída", \
-                      "-r substitui caracteres não padrão", \
-                      "-l limite de caracteres por sentença", \
-                      " -demais opções ignoradas, por favor execute novamente sem opção de ajuda",
-                      "Exemplo de utilização:", \
-                      "portSent -o sents.txt -r -l 2048 text1.txt text2.txt", \
-                      "Busca o texto nos arquivos 'text1.txt' e 'text2.txt'", \
-                      "  substitui caracteres não usuais,", \
-                      "  gera sentenças com limite máximo de 2048 carateres e", \
-                      "  salva as sentenças no arquivo 'sents.txt'", \
-                      sep="\n")
-                return None
-            # opção de substituição (replace) de caracteres não usuais
-            elif ((arguments[i][1] == "r") and (len(arguments[i])==2)) or \
-                 (arguments[i] == "-replace"):
-                replace = True
-                i += 1
-            # opção de limite de tamanho de sentença (limit) - 0 para sem limite
-            elif ((arguments[i][1] == "l") and (len(arguments[i])==2)) or \
-                 (arguments[i] == "-limit"):
-                try:
-                    limit = eval(arguments[i+1])
-                    i += 2
-                except:
-                    print("limite de caracteres por sentença não informado - assumindo sem limite")
-                    i += 1
-            # opção de arquivo de saída (um nome de arquivo)
-            elif ((arguments[i][1] == "o") and (len(arguments[i])==2)) or \
-                 (arguments[i] == "-output"):
-                output_file = arguments[i+1]
-                i += 2
-            # opções inválidas - nada é executado
-            else:
-                print("Opção {} inválida, demais opções ignoradas, por favor execute novamente".format(arguments[i]))
-                return None
-        # arquivos de entrada (qualquer número) - só são incluídos se existirem
-        else:
-            if (os.path.isfile(arguments[i])):
-                input_files.append(arguments[i])
-                i += 1
-            else:
-                print("O arquivo {} não foi encontrado (ignorado)".format(arguments[i]))
-                i += 1
-    return [output_file, input_files, limit, replace]
+def _existing_file(path: str) -> str:
+    """Argparse type that validates file exists."""
+    if not os.path.isfile(path):
+        raise argparse.ArgumentTypeError(f"O arquivo '{path}' não foi encontrado")
+    return path
+
+
+def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
+    """Parse command-line arguments using argparse."""
+    parser = argparse.ArgumentParser(
+        prog="portSent",
+        description="Sentenciador de texto puro para o Português",
+        epilog="Exemplo: portSent -o sents.txt --no-replace -l 2048 text1.txt text2.txt"
+    )
+    
+    parser.add_argument(
+        "input_files",
+        nargs="+",
+        type=_existing_file,
+        help="Arquivos de entrada com texto"
+    )
+    parser.add_argument(
+        "-o", "--output",
+        dest="output_file",
+        default="sents.txt",
+        help="Arquivo de saída com sentenças (default: %(default)s)"
+    )
+    parser.add_argument(
+        "-r", "--replace", "--no-replace",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="Substitui caracteres não padrão (default: %(default)s)"
+    )
+    parser.add_argument(
+        "-l", "--limit",
+        type=int,
+        default=0,
+        help="Limite de caracteres por sentença, 0 para sem limite (default: %(default)s)"
+    )
+    
+    return parser.parse_args(argv)
 
 #################################################
 ### função stripSents - faz de fato o sentenciamento
 #################################################
-def stripSents(inputText, outfile, limit, replace):
-    def cleanPrint(sent, outfile):
+def stripSents(inputText: str, outfile: TextIO, limit: int, replace: bool) -> int:
+    def cleanPrint(sent: str, outfile: TextIO) -> int:
         # do not print empty sentences
         if (sent == "") or (sent == ".") or (sent == ".."):
             return 0
@@ -106,7 +97,7 @@ def stripSents(inputText, outfile, limit, replace):
         else:
             print(sent, file=outfile)
             return 1
-    def isAbbrev(chunk, abbrev):
+    def isAbbrev(chunk: str, abbrev: list[str]) -> bool:
         abbr = False
         for a in abbrev:
             if (chunk == a):
@@ -212,31 +203,18 @@ def stripSents(inputText, outfile, limit, replace):
 #################################################
 ### função principal do programa - busca argumentos e chama 'stripSents' que faz de fato o sentenciamento
 #################################################
-def portSent():
-    if (len(sys.argv) == 1):
-        arguments = ["sents2.txt", ["relic.txt"], 0, True]
-        print("Assumindo default: 'sents.txt' como arquivo de saída, 'text1.txt' como arquivo de entrada, sem limite e substituições.")
-    else:
-        arguments = parseOptions(sys.argv)
-    if (arguments != None):
-        if (arguments[0] == ""):
-            print("Assumindo 'sents.txt' como arquivo de saída")
-            arguments[0] = 'sents.txt'
-        if (arguments[1] == []):
-            print("Nenhum arquivo de entrada válido - por favor corrija e tente novamente")
-        else:
-            outfile = open(arguments[0], "w")
-            inputText = ""
-            for oneInput in arguments[1]:
-                infile = open(oneInput, "r")
-                inputText += infile.read()
-                infile.close()
-                s = stripSents(inputText, outfile, arguments[2], arguments[3])
-            outfile.close()
-            print("Sentenciamento terminado com {} sentenças extraídas e salvas em {}".format(s, arguments[0]))
-    else:
-        print("Problemas com parâmetros - por favor corrija e tente novamente")
-
-portSent()
+def main() -> None:
+    args = parse_args()
+    
+    with open(args.output_file, "w") as outfile:
+        input_text = ""
+        for input_path in args.input_files:
+            with open(input_path, "r") as infile:
+                input_text += infile.read()
+        s = stripSents(input_text, outfile, args.limit, args.replace)
+    
+    print(f"Sentenciamento terminado com {s} sentenças extraídas e salvas em {args.output_file}")
 
 
+if __name__ == "__main__":
+    main()

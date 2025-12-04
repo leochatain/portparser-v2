@@ -33,7 +33,9 @@
 # last edit: 10/05/2025
 # created by Lucelene Lopes - lucelene@gmail.com
 
-import sys, os
+import os
+import argparse
+from typing import TextIO
 import lexikon
 lex = lexikon.UDlexPT()
 
@@ -41,74 +43,66 @@ lex = lexikon.UDlexPT()
 #################################################
 ### Captura de argumentos da linha de comando
 #################################################
-def parseOptions(arguments):
-    # default options
-    output_file, input_file, preserve, match, trim, model = "", [], False, False, False, "S000000"
-    i = 1
-    while i < len(arguments):
-        if (arguments[i][0] == "-"):
-            # ajuda (help) - mostra ajuda, nada é executado
-            if ((arguments[i][1] == "h") and (len(arguments[i])==2)) or \
-               (arguments[i] == "-help"):
-                print("Opções:\n-h ajuda\n-o arquivo de saída", \
-                      "-m corrige pontuações casadas (aspas, parenteses, etc)", \
-                      "-t remove possíveis MANCHETES que precedem as frases", \
-                      "Exemplo de utilização:", \
-                      "portTok -o sents.conllu -m -t -s S000000 sents.txt", \
-                      "Busca as sentenças no arquivo 'sents.txt',", \
-                      "  corrige pontuações casadas (aspas, parenteses, etc),", \
-                      "  remove possíveis MANCHETES que precedem as frases", \
-                      "  usa S0000000 como modelo de identificador de sentença e"
-                      "  salva as sentenças devidamente tokenizadas no arquivo 'sents.conllu''", \
-                      sep="\n")
-                return None
-            # opção de correção (preserve) para itens a) b) i) ii)
-            elif ((arguments[i][1] == "p") and (len(arguments[i])==2)) or \
-                 (arguments[i] == "-preserve"):
-                preserve = True
-                i += 1
-            # opção de correção (matching) de pontuações pareadas
-            elif ((arguments[i][1] == "m") and (len(arguments[i])==2)) or \
-                 (arguments[i] == "-match"):
-                match = True
-                i += 1
-            # opção de remoção (trim) de manchetes no início da sentença
-            elif ((arguments[i][1] == "t") and (len(arguments[i])==2)) or \
-                 (arguments[i] == "-trim"):
-                trim = True
-                i += 1
-            # opção de modelo de identificador de sentença (sid) - 0 para sem limite
-            elif ((arguments[i][1] == "s") and (len(arguments[i])==2)) or \
-                 (arguments[i] == "-sid"):
-                try:
-                    model = arguments[i+1]
-                    i += 2
-                except:
-                    print("modelo de identificador de sentença não informado - assumindo S00000")
-                    i += 1
-            # opção de arquivo de saída (um nome de arquivo)
-            elif ((arguments[i][1] == "o") and (len(arguments[i])==2)) or \
-                 (arguments[i] == "-output"):
-                output_file = arguments[i+1]
-                i += 2
-            # opções inválidas - nada é executado
-            else:
-                print("Opção {} inválida, demais opções ignoradas, por favor execute novamente".format(arguments[i]))
-                return None
-        # arquivo de entrada - só é incluído se existir
-        else:
-            if (os.path.isfile(arguments[i])):
-                input_file = arguments[i]
-                i += 1
-            else:
-                print("O arquivo {} não foi encontrado, por favor execute novamente".format(arguments[i]))
-                return None
-    return [output_file, input_file, preserve, match, trim, model]
+def _existing_file(path: str) -> str:
+    """Argparse type that validates file exists."""
+    if not os.path.isfile(path):
+        raise argparse.ArgumentTypeError(f"O arquivo '{path}' não foi encontrado")
+    return path
+
+
+def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
+    """Parse command-line arguments using argparse."""
+    parser = argparse.ArgumentParser(
+        prog="portTok",
+        description="Tokenizador de sentenças em Português para arquivo CoNLL-U",
+        epilog="Exemplo: portTok -o sents.conllu --no-preserve -m -t -s S000000 sents.txt"
+    )
+    
+    parser.add_argument(
+        "input_file",
+        nargs="?",
+        default="sents.txt",
+        type=_existing_file,
+        help="Arquivo de entrada com sentenças (uma por linha) (default: %(default)s)"
+    )
+    parser.add_argument(
+        "-o", "--output",
+        dest="output_file",
+        default="sents.conllu",
+        help="Arquivo de saída CoNLL-U (default: %(default)s)"
+    )
+    parser.add_argument(
+        "-p", "--preserve", "--no-preserve",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="Preserva tokens de itemização como a) b) i) ii) (default: %(default)s)"
+    )
+    parser.add_argument(
+        "-m", "--match", "--no-match",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="Corrige pontuações casadas (aspas, parênteses, etc) (default: %(default)s)"
+    )
+    parser.add_argument(
+        "-t", "--trim", "--no-trim",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="Remove possíveis manchetes que precedem as frases (default: %(default)s)"
+    )
+    parser.add_argument(
+        "-s", "--sid",
+        dest="sid_model",
+        default="S000000",
+        help="Modelo de identificador de sentença (default: %(default)s)"
+    )
+    
+    return parser.parse_args(argv)
+
 
 #############################################################################
 #  Increment a name index
 #############################################################################
-def nextName(name):
+def nextName(name: str) -> str:
     # increment the digits from right to left
     ans = ""
     while name != "":
@@ -150,7 +144,7 @@ def nextName(name):
 #############################################################################
 #  Trim the unwanted bits at the sentence - trimIt (step 1)
 #############################################################################
-def trimIt(s):
+def trimIt(s: str) -> str:
     # generate the bits separated by blanks trimming blanks before, after, and multiples
     bits = s.strip().replace("  ", " ").replace("  ", " ").split(" ")
     start = 0
@@ -186,7 +180,7 @@ def trimIt(s):
 #############################################################################
 #  Tag the itemize prompts and double paragraph with //*||*\\ or //*|(|*\\ - tagIt (step 2)
 #############################################################################
-def tagIt(s):
+def tagIt(s: str) -> str:
     romans = ["i", "ii", "iii", "iv", "v", "vi", "vii", "viii", "ix", "x", \
               "xi", "xii", "xiii", "xiv", "xv", "xvi", "xvii", "xviii", \
               "xix", "xx", "xxi", "xxii", "xxiii", "xxiv", "xxvi", "xxvii", \
@@ -220,8 +214,8 @@ def tagIt(s):
 #############################################################################
 #  Clear matching punctuations - punctIt (step 3)
 #############################################################################
-def punctIt(s):
-    def notAlphaNum(sent):
+def punctIt(s: str) -> str:
+    def notAlphaNum(sent: str) -> bool:
         ans = True
         for c in sent:
             if c.isalpha() or c.isdigit():
@@ -275,8 +269,8 @@ def punctIt(s):
 #############################################################################
 #  Decide if ambiguous tokens are contracted or not - desambIt (within step 4)
 #############################################################################
-def desambIt(token, bits, i, lastField, s, SID, tokens):
-    def stripWord(w):
+def desambIt(token: str, bits: list[str], i: int, lastField: str, s: str, SID: str, tokens: list[list[str]]) -> None:
+    def stripWord(w: str) -> str:
         start, end = 0, len(w)
         for j in range(len(w)):
             if (not w[j].isalpha()):
@@ -513,7 +507,7 @@ def desambIt(token, bits, i, lastField, s, SID, tokens):
 #############################################################################
 #  Tokenizing - tokenizeIt (step 4)
 #############################################################################
-def tokenizeIt(s, SID, outfile):
+def tokenizeIt(s: str, SID: str, outfile: TextIO) -> int:
     removable = ["'", '"', "(", ")", "[", "]", "{", "}", "<", ">", \
                  "!", "?", ",", ";", ":", "=", "+", "*", "★", "|", "/", "\\", \
                  "&", "^", "_", "`", "'", "~", "%", "§"]
@@ -853,7 +847,7 @@ def tokenizeIt(s, SID, outfile):
 #################################################
 ### Deal with a sentence, clean it, if required, then tokenize it
 #################################################
-def dealWith(outfile, sent, SID, preserve, match, trim):
+def dealWith(outfile: TextIO, sent: str, SID: str, preserve: bool, match: bool, trim: bool) -> tuple[int, int]:
     if (trim):       # step 1
         sent = trimIt(sent)
     if (preserve):   # step 2
@@ -868,36 +862,20 @@ def dealWith(outfile, sent, SID, preserve, match, trim):
 #################################################
 ### função principal do programa - busca argumentos e chama 'tokenize' para cada sentença da entrada
 #################################################
-def portTok():
-    if (len(sys.argv) == 1):
-        #arguments = ["/Users/pf64/Desktop/alienista/alienista_empty.conllu", "/Users/pf64/Desktop/alienista/alienista.txt", False, True, False, "ATENISTA_SENT0000"]
-        #arguments = ["/Users/pf64/Desktop/tst.conllu", "/Users/pf64/Desktop/tst.txt", True, True, True, "S000000"]
-        arguments = ["sents.conllu", "sents.txt", True, True, True, "S000000"]
-        print("Assumindo default: 'sents.conllu' como arquivo de saída, 'sents.txt' como arquivo de entrada, correções, remoções e S0000 como sid.")
-    else:
-        arguments = parseOptions(sys.argv)
-    if (arguments != None):
-        if (arguments[0] == ""):
-            print("Assumindo 'sents.conllu' como arquivo de saída")
-            arguments[0] = 'sents.conllu'
-        if (arguments[1] == []):
-            print("Arquivo de entrada inválido - por favor corrija e tente novamente")
-        else:
-            outfile = open(arguments[0], "w")
-            #print("# newdoc id = {}\n# newpar".format(arguments[0]), file=outfile)
-            infile = open(arguments[1], "r")
-            SID = arguments[5]
-            sTOTAL, tTOTAL = 0, 0
-            for line in infile:
-                SID = nextName(SID)
-                s, t = dealWith(outfile, line[:-1], SID, arguments[2], arguments[3], arguments[4])
-                if (s == 1):
-                    sTOTAL += 1
-                    tTOTAL += t
-            outfile.close()
-            infile.close()
-            print("Tokenização terminada com {} sentenças extraídas ({} tokens) e salvas em {}".format(sTOTAL, tTOTAL, arguments[0]))
-    else:
-        print("Problemas com parâmetros - por favor corrija e tente novamente")
+def main() -> None:
+    args = parse_args()
+    
+    with open(args.output_file, "w") as outfile, open(args.input_file, "r") as infile:
+        sid = args.sid_model
+        s_total, t_total = 0, 0
+        for line in infile:
+            sid = nextName(sid)
+            s, t = dealWith(outfile, line[:-1], sid, args.preserve, args.match, args.trim)
+            if s == 1:
+                s_total += 1
+                t_total += t
+    
+    print(f"Tokenização terminada com {s_total} sentenças extraídas ({t_total} tokens) e salvas em {args.output_file}")
 
-portTok()
+if __name__ == "__main__":
+    main()
