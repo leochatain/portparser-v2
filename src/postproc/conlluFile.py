@@ -45,7 +45,7 @@
     ## b[5] status of change (a place holder for information)
 
 
-class conlluFile:
+class ConlluFile:
     def __init__(self, name="", skipAg=False):   # create a base from an input conllu file (name) considering contracted word or not (skipAg)
         # Instance variables:
         #   self.base      - the whole base
@@ -296,7 +296,7 @@ class conlluFile:
 
 def usageExample(name):
     # Open a .conllu file with "name"
-    base = conlluFile(name)
+    base = ConlluFile(name)
     # Get the number of sentences and tokens
     s, t = base.getSandT()
     # to count all tokens tagged with PUNCT PoS tag

@@ -15,11 +15,21 @@
 #        -f or -feats      to perform only the features corrections
 #        -q or -quiet      to not generate the changes report (.rep.tsv)
 ##################
+import io
 import os
 import argparse
+from dataclasses import dataclass, field
 import lexikon
-from conlluFile import conlluFile
+from conlluFile import ConlluFile
 lex = lexikon.UDlexPT()
+
+
+@dataclass
+class PostProcessResult:
+    """Result of post-processing a CoNLL-U file."""
+    output: str = ""
+    changes: dict[str, int] = field(default_factory=lambda: {"Pchanged": 0, "Lchanged": 0, "Fchanged": 0})
+    report_lines: list[str] = field(default_factory=list)
 
 #################################################
 ### Captura de argumentos da linha de comando
@@ -236,13 +246,20 @@ def sepLEMMA_FEATS(options):
     return opLEMMA, opFEATS
 
 #################################################
-### Main Function - Postprocess fix of UPOS, LEMMA and FEATS
+### Core Function - Postprocess fix of UPOS, LEMMA and FEATS
 #################################################
-def main() -> None:
-    args = parse_args()
+def fixLemmaFeatures(base: ConlluFile, usualAbbr: list) -> PostProcessResult:
+    """
+    Fix UPOS, LEMMA and FEATS in a CoNLL-U file.
     
-    # if compound word                                 # fix - replace upper case in Lemma only
-    # if the word is within known unambiguous abbr     # correct arbitrarily
+    Args:
+        base: A ConlluFile object to process (modified in place).
+        usualAbbr: List of usual abbreviations from getUsualAbbr().
+    
+    Returns:
+        PostProcessResult with lines, changes counts, and report lines.
+    """
+    # Tag categories
     lexOutOfTags   = ["PROPN", "PUNCT", "SYM", "X"]    # correct arbitrarily
     lexCloseTags   = ["ADP", "ADV", "CCONJ", "SCONJ"]  # correct if unique in lex, erase feats (features are impossible)
     lexPronDetTags = ["DET", "PRON"]                   # correct if unique in lex, require 'PronType', erase impossible features
@@ -253,16 +270,9 @@ def main() -> None:
     ordinalsignsMasc = ['º', '°', 'o']
     ordinalsignsNeut = ['.']
 
-    outfile = open(args.output_file, "w")
-    repfile = None
-    if not args.quiet:
-        repfile = open(args.output_file + ".rep.tsv", "w")
-    base = conlluFile(args.input_file)
-    # counters
-    accName = ["Pchanged", "Lchanged", "Fchanged"]
-    acc = [0]*len(accName)
-    # usual Abbr (read from .tsv with "form", "kind", "UPOS", "LEMMA", "FEATS")
-    usualAbbr = getUsualAbbr()
+    # result
+    result = PostProcessResult()
+    
     # main loop
     for i in range(base.getS()):
         b = base.getSentByIndex(i)
@@ -457,27 +467,53 @@ def main() -> None:
                     feat = featsFull(opFEATS[0], abbr, extpos=extpos, verbform=None, voicepass=voicepass) if (len(opFEATS) == 1) else featsFull(tk[5], abbr, extpos=extpos, verbform=None, voicepass=voicepass)
             # do reports and change
             if (pos != tk[3]):
-                if repfile:
-                    print(b[0], tk[0], tk[1], tk[3], "UPOS", tk[3], pos, sep="\t", file=repfile)
-                acc[accName.index("Pchanged")] += 1
+                result.report_lines.append("\t".join([b[0], tk[0], tk[1], tk[3], "UPOS", tk[3], pos]))
+                result.changes["Pchanged"] += 1
                 tk[3] = pos
             if (lem != tk[2]):
-                if repfile:
-                    print(b[0], tk[0], tk[1], tk[3], "LEMMA", tk[2], lem, sep="\t", file=repfile)
-                acc[accName.index("Lchanged")] += 1
+                result.report_lines.append("\t".join([b[0], tk[0], tk[1], tk[3], "LEMMA", tk[2], lem]))
+                result.changes["Lchanged"] += 1
                 tk[2] = lem
             if (feat != tk[5]):
                 if ("ExtPos=" not in feat):
-                    if repfile:
-                        print(b[0], tk[0], tk[1], tk[3], "FEATS", tk[5], feat, sep="\t", file=repfile)
-                    acc[accName.index("Fchanged")] += 1
+                    result.report_lines.append("\t".join([b[0], tk[0], tk[1], tk[3], "FEATS", tk[5], feat]))
+                    result.changes["Fchanged"] += 1
                 tk[5] = feat
 
-    if repfile:
-        print_reps(repfile, accName, acc)
-        repfile.close()
-    base.printNoHeader(outfile)
-    outfile.close()
+    # Generate output from the modified base
+    output_buffer = io.StringIO()
+    base.printNoHeader(output_buffer)
+    result.output = output_buffer.getvalue()
+
+    return result
+
+
+#################################################
+### Main Function - CLI entry point
+#################################################
+def main() -> None:
+    args = parse_args()
+    
+    # Load data
+    base = ConlluFile(args.input_file)
+    usualAbbr = getUsualAbbr()
+    
+    # Process
+    result = fixLemmaFeatures(base, usualAbbr)
+    
+    # Write output
+    with open(args.output_file, "w") as outfile:
+        outfile.write(result.output)
+    
+    # Write report if requested
+    if not args.quiet:
+        with open(args.output_file + ".rep.tsv", "w") as repfile:
+            for line in result.report_lines:
+                print(line, file=repfile)
+            # Print summary
+            accName = ["Pchanged", "Lchanged", "Fchanged"]
+            accList = [result.changes[name] for name in accName]
+            print_reps(repfile, accName, accList)
 
     print(f"Pós-processamento concluído. Resultado salvo em {args.output_file}")
 
