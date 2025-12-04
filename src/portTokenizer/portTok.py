@@ -35,7 +35,6 @@
 
 import os
 import argparse
-from typing import TextIO
 import lexikon
 lex = lexikon.UDlexPT()
 
@@ -507,7 +506,7 @@ def desambIt(token: str, bits: list[str], i: int, lastField: str, s: str, SID: s
 #############################################################################
 #  Tokenizing - tokenizeIt (step 4)
 #############################################################################
-def tokenizeIt(s: str, SID: str, outfile: TextIO) -> int:
+def tokenizeIt(s: str, SID: str) -> list[str]:
     removable = ["'", '"', "(", ")", "[", "]", "{", "}", "<", ">", \
                  "!", "?", ",", ";", ":", "=", "+", "*", "★", "|", "/", "\\", \
                  "&", "^", "_", "`", "'", "~", "%", "§"]
@@ -826,28 +825,29 @@ def tokenizeIt(s: str, SID: str, outfile: TextIO) -> int:
                 i += 1
         k += 1
     # output the sentence with all the tokens
-    print("# sent_id =", SID, file=outfile)
-    print("# text =", s.replace("//*||*\\\\", "").replace("//*||*\\\\", "").replace("//*|(|*\\\\", ""), file=outfile)
-    ## printout tokens
+    lines = []
+    lines.append("# sent_id = " + SID)
+    lines.append("# text = " + s.replace("//*||*\\\\", "").replace("//*||*\\\\", "").replace("//*|(|*\\\\", ""))
+    ## build token lines
     toks = 0
     for i in range(len(tokens)):
         if (tokens[i][1][0] == "c"):
             # contracted word (two parts)
-            print(str(toks+1)+"-"+str(toks+2), tokens[i][0], "_", "_", "_", "_", "_", "_", "_", tokens[i][1][1:], sep="\t", file=outfile)
+            lines.append("\t".join([str(toks+1)+"-"+str(toks+2), tokens[i][0], "_", "_", "_", "_", "_", "_", "_", tokens[i][1][1:]]))
         elif (tokens[i][1][0] == "C"):
             # contracted word (three parts)
-            print(str(toks+1)+"-"+str(toks+3), tokens[i][0], "_", "_", "_", "_", "_", "_", "_", tokens[i][1][1:], sep="\t", file=outfile)
+            lines.append("\t".join([str(toks+1)+"-"+str(toks+3), tokens[i][0], "_", "_", "_", "_", "_", "_", "_", tokens[i][1][1:]]))
         elif (tokens[i][0].strip() != ""):
             # non contracted word
             toks += 1
-            print(str(toks), tokens[i][0].strip(), "_", "_", "_", "_", "_", "_", "_", tokens[i][1], sep="\t", file=outfile)
-    print(file=outfile)
-    return(toks)
+            lines.append("\t".join([str(toks), tokens[i][0].strip(), "_", "_", "_", "_", "_", "_", "_", tokens[i][1]]))
+    lines.append("")  # empty line at end
+    return lines
 
 #################################################
 ### Deal with a sentence, clean it, if required, then tokenize it
 #################################################
-def dealWith(outfile: TextIO, sent: str, SID: str, preserve: bool, match: bool, trim: bool) -> tuple[int, int]:
+def processIt(sent: str, SID: str, preserve: bool, match: bool, trim: bool) -> list[str]:
     if (trim):       # step 1
         sent = trimIt(sent)
     if (preserve):   # step 2
@@ -855,9 +855,9 @@ def dealWith(outfile: TextIO, sent: str, SID: str, preserve: bool, match: bool, 
     if (match):      # step 3
         sent = punctIt(sent)
     if (sent != ""): # step 4
-        return 1, tokenizeIt(sent, SID, outfile)
+        return tokenizeIt(sent, SID)
     else:
-        return 0, 0
+        return []
 
 #################################################
 ### função principal do programa - busca argumentos e chama 'tokenize' para cada sentença da entrada
@@ -867,15 +867,16 @@ def main() -> None:
     
     with open(args.output_file, "w") as outfile, open(args.input_file, "r") as infile:
         sid = args.sid_model
-        s_total, t_total = 0, 0
+        s_total = 0
         for line in infile:
             sid = nextName(sid)
-            s, t = dealWith(outfile, line[:-1], sid, args.preserve, args.match, args.trim)
-            if s == 1:
+            lines = processIt(line[:-1], sid, args.preserve, args.match, args.trim)
+            if lines:
                 s_total += 1
-                t_total += t
+                for ln in lines:
+                    print(ln, file=outfile)
     
-    print(f"Tokenização terminada com {s_total} sentenças extraídas ({t_total} tokens) e salvas em {args.output_file}")
+    print(f"Tokenização terminada com {s_total} sentenças extraídas e salvas em {args.output_file}")
 
 if __name__ == "__main__":
     main()
