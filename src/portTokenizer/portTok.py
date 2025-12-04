@@ -74,18 +74,21 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         "-p", "--preserve", "--no-preserve",
         action=argparse.BooleanOptionalAction,
         default=True,
+        dest="preserve",
         help="Preserva tokens de itemização como a) b) i) ii) (default: %(default)s)"
     )
     parser.add_argument(
         "-m", "--match", "--no-match",
         action=argparse.BooleanOptionalAction,
         default=True,
+        dest="match",
         help="Corrige pontuações casadas (aspas, parênteses, etc) (default: %(default)s)"
     )
     parser.add_argument(
         "-t", "--trim", "--no-trim",
         action=argparse.BooleanOptionalAction,
         default=True,
+        dest="trim",
         help="Remove possíveis manchetes que precedem as frases (default: %(default)s)"
     )
     parser.add_argument(
@@ -859,23 +862,67 @@ def processIt(sent: str, SID: str, preserve: bool, match: bool, trim: bool) -> l
     else:
         return []
 
+
+#################################################
+### Process multiple sentences and return CoNLL-U output
+#################################################
+def processSentences(
+    sentences: list[str],
+    sid_start: str = "S000000",
+    preserve: bool = True,
+    match: bool = True,
+    trim: bool = True
+) -> str:
+    """
+    Convert a list of sentences to CoNLL-U format.
+    
+    Args:
+        sentences: List of sentences to tokenize.
+        sid_start: Starting sentence ID model (default: "S000000").
+        preserve: Preserve itemization tokens like a) b) i) ii) (default: True).
+        match: Correct paired punctuation (quotes, parentheses, etc) (default: True).
+        trim: Remove possible headlines preceding sentences (default: True).
+    
+    Returns:
+        CoNLL-U formatted string with all tokenized sentences.
+    """
+    all_output_lines: list[str] = []
+    sid = sid_start
+    
+    for sentence in sentences:
+        sid = nextName(sid)
+        processed_lines = processIt(sentence, sid, preserve, match, trim)
+        if processed_lines:
+            all_output_lines.extend(processed_lines)
+    
+    return "\n".join(all_output_lines)
+
+
 #################################################
 ### função principal do programa - busca argumentos e chama 'tokenize' para cada sentença da entrada
 #################################################
 def main() -> None:
     args = parse_args()
     
-    with open(args.output_file, "w") as outfile, open(args.input_file, "r") as infile:
-        sid = args.sid_model
-        s_total = 0
-        for line in infile:
-            sid = nextName(sid)
-            lines = processIt(line[:-1], sid, args.preserve, args.match, args.trim)
-            if lines:
-                s_total += 1
-                for ln in lines:
-                    print(ln, file=outfile)
+    # Read sentences from file
+    with open(args.input_file, "r") as infile:
+        sentences = [line.rstrip('\n') for line in infile]
     
+    # Process all sentences
+    output = processSentences(
+        sentences,
+        sid_start=args.sid_model,
+        preserve=args.preserve,
+        match=args.match,
+        trim=args.trim
+    )
+    
+    # Write output
+    with open(args.output_file, "w") as outfile:
+        outfile.write(output)
+    
+    # Count sentences in output
+    s_total = output.count("# sent_id = ")
     print(f"Tokenização terminada com {s_total} sentenças extraídas e salvas em {args.output_file}")
 
 if __name__ == "__main__":

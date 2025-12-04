@@ -64,12 +64,14 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         "-l", "--lemma", "--no-lemma",
         action=argparse.BooleanOptionalAction,
         default=True,
+        dest="lemma",
         help="Executa correção de lemma (default: %(default)s)"
     )
     parser.add_argument(
         "-f", "--feats", "--no-feats",
         action=argparse.BooleanOptionalAction,
         default=True,
+        dest="feats",
         help="Executa correção de features (default: %(default)s)"
     )
     parser.add_argument(

@@ -60,6 +60,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         "-r", "--replace", "--no-replace",
         action=argparse.BooleanOptionalAction,
         default=True,
+        dest="replace",
         help="Substitui caracteres não padrão (default: %(default)s)"
     )
     parser.add_argument(
