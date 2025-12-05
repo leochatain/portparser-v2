@@ -25,6 +25,8 @@
 import os
 import argparse
 
+from lexikon import ends_with_abbreviation
+
 
 #################################################
 ### Captura de argumentos da linha de comando
@@ -96,19 +98,6 @@ def _clean_sentence(sent: str) -> str | None:
         return sent
 
 
-def _is_abbrev(chunk: str, abbrev: list[str]) -> bool:
-    """Check if chunk ends with a known abbreviation."""
-    abbr = False
-    for a in abbrev:
-        if (chunk == a):
-            abbr = True
-            break
-        else:
-            lasts = -len(a)
-            if (chunk[lasts:] == a) and (not chunk[lasts-1].isalpha()):
-                abbr = True
-                break
-    return abbr
 
 
 #################################################
@@ -133,13 +122,6 @@ def stripSents(inputText: str, limit: int = 0, replace: bool = True) -> list[str
         cleaned = _clean_sentence(sent)
         if cleaned is not None:
             sentences.append(cleaned)
-    
-    # Load abbreviations
-    abbrev = []
-    infile = open("./src/portSentencer/abbrev.txt", "r")
-    for line in infile:
-        abbrev.append(line[:-1])
-    infile.close()
     
     if (replace):
         replaceables = [[" ", " "], \
@@ -207,7 +189,7 @@ def stripSents(inputText: str, limit: int = 0, replace: bool = True) -> list[str
             sent = ""
         elif (chunk[-2:] in [".'", '."']):
             sent += " " + chunk
-            if not _is_abbrev(chunk[:-1], abbrev):
+            if not ends_with_abbreviation(chunk[:-1]):
                 add_sentence(sent[1:])
                 sent = ""
         # a chunk not ending with ! ? ... ; : or . is not an end of sentence
@@ -216,7 +198,7 @@ def stripSents(inputText: str, limit: int = 0, replace: bool = True) -> list[str
         # chunk ending by . is either a know abbreviation (not an end of sentence), or an end of sentence
         elif (chunk[-1] == "."):
             sent += " " + chunk
-            if not _is_abbrev(chunk, abbrev):
+            if not ends_with_abbreviation(chunk):
                 add_sentence(sent[1:])
                 sent = ""
     
