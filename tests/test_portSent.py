@@ -5,10 +5,10 @@ from pathlib import Path
 
 import pytest
 
-# Add src to path so we can import portSentencer
+# Add src to path so we can import portparser_v2
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-from portSentencer.portSent import stripSents
+from portparser_v2.portSent import stripSents
 
 # Path to test fixtures
 FIXTURES_DIR = Path(__file__).parent / "fixtures" / "portSentencer"

@@ -5,10 +5,10 @@ from pathlib import Path
 
 import pytest
 
-# Add src to path so we can import portTokenizer
-sys.path.insert(0, str(Path(__file__).parent.parent / "src" / "portTokenizer"))
+# Add src to path so we can import portparser_v2
+sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-from portTok import nextName, trimIt, tagIt, punctIt, tokenizeIt, processIt, processSentences
+from portparser_v2.portTok import nextName, trimIt, tagIt, punctIt, tokenizeIt, processIt, processSentences
 
 # Path to test fixtures
 FIXTURES_DIR = Path(__file__).parent / "fixtures" / "portTok"

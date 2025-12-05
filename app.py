@@ -29,15 +29,15 @@ def img_to_html(img_path, img_style='max-width: 100%;'):
 # Call parser steps
 def make_sentences(path_raw_text, path_text):
     try:
-        #st.text(f'python ./src/portSentencer/portSent.py -o {path_text} -r -l 2048 {path_raw_text}')
-        outcome = os.system(f'python ./src/portSentencer/portSent.py -o {path_text} -r -l 2048 {path_raw_text}')
+        #st.text(f'python ./src/portparser_v2/portSent.py -o {path_text} -r -l 2048 {path_raw_text}')
+        outcome = os.system(f'python ./src/portparser_v2/portSent.py -o {path_text} -r -l 2048 {path_raw_text}')
         return f'S'+str(outcome)
     except Exception as e:
         return str(e)
 
 def make_conllu(path_text, path_empty_conllu):
     try:
-        outcome = os.system(f'python ./src/portTokenizer/portTok.py -o {path_empty_conllu} -m -s S000000 {path_text}')
+        outcome = os.system(f'python ./src/portparser_v2/portTok.py -o {path_empty_conllu} -m -s S000000 {path_text}')
         return 'T'+str(outcome)
     except Exception as e:
         return str(e)

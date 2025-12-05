@@ -2,9 +2,7 @@
 Portparser v2 Core Pipeline
 
 This module provides the core parsing pipeline for Brazilian Portuguese text.
-It orchestrates: sentencing → tokenization → prediction → postprocessing.
-
-Each step reads from and writes to temporary files.
+It orchestrates: sentencing -> tokenization -> prediction -> postprocessing.
 """
 
 import os
@@ -16,16 +14,17 @@ from typing import Optional
 
 from huggingface_hub import hf_hub_download
 
+from portparser_v2.portSent import stripSents
+from portparser_v2.portTok import processSentences
+
 
 # Default model repository
 DEFAULT_MODEL_REPO = "lucelene/Portparser.v2-latinpipe-core"
 
 # Paths relative to project root
-SCRIPT_DIR = Path(__file__).parent.parent
-SENTENCER_SCRIPT = SCRIPT_DIR / "portSentencer" / "portSent.py"
-TOKENIZER_SCRIPT = SCRIPT_DIR / "portTokenizer" / "portTok.py"
-PARSER_SCRIPT = SCRIPT_DIR / "evalatin2024-latinpipe" / "latinpipe_evalatin24.py"
-POSTPROC_SCRIPT = SCRIPT_DIR / "postproc" / "postprocess.py"
+SCRIPT_DIR = Path(__file__).parent
+PARSER_SCRIPT = SCRIPT_DIR.parent / "evalatin2024-latinpipe" / "latinpipe_evalatin24.py"
+POSTPROC_SCRIPT = SCRIPT_DIR.parent / "postproc" / "postprocess.py"
 
 
 def _generate_code() -> str:
@@ -46,14 +45,9 @@ def download_model(repo_id: str = DEFAULT_MODEL_REPO) -> str:
     return model_weights
 
 
-def run_sentencer(input_path: str, output_path: str, max_length: int = 2048) -> int:
-    cmd = f"python {SENTENCER_SCRIPT} -o {output_path} -r -l {max_length} {input_path}"
-    return os.system(cmd)
-
-
-def run_tokenizer(input_path: str, output_path: str, start_id: str = "S000000") -> int:
-    cmd = f"python {TOKENIZER_SCRIPT} -o {output_path} -m -s {start_id} {input_path}"
-    return os.system(cmd)
+def tokenize_sentences(sentences: list[str], start_id: str = "S000000") -> str:
+    """Tokenize sentences into CoNLL-U format."""
+    return processSentences(sentences, sid_start=start_id, preserve=True, match=True, trim=False)
 
 
 def run_parser(input_path: str, output_dir: str, model_path: str) -> int:
@@ -95,8 +89,6 @@ def parse_text(
     code = _generate_code()
 
     # Define file paths
-    path_raw_text = os.path.join(work_dir, f"{code}_raw.txt")
-    path_text = os.path.join(work_dir, f"{code}_input.txt")
     path_empty_conllu = os.path.join(work_dir, f"{code}_input.conllu")
     path_predicted_conllu = os.path.join(work_dir, f"{code}_input.predicted.conllu")
     path_final_conllu = output_path or os.path.join(work_dir, f"{code}_parsed.conllu")
@@ -105,17 +97,18 @@ def parse_text(
     if model_path is None:
         model_path = download_model()
 
-    # Step 1: Sentence segmentation (optional)
+    # Step 1: Sentence segmentation
     if segment_sentences:
-        with open(path_raw_text, "w", encoding="utf-8") as f:
-            f.write(text)
-        run_sentencer(path_raw_text, path_text)
+        sentences = stripSents(text)
     else:
-        with open(path_text, "w", encoding="utf-8") as f:
-            f.write(text)
+        sentences = [line for line in text.split('\n') if line.strip()]
 
     # Step 2: Tokenization
-    run_tokenizer(path_text, path_empty_conllu)
+    conllu_content = tokenize_sentences(sentences)
+
+    # Write tokenized output to file for parser
+    with open(path_empty_conllu, "w", encoding="utf-8") as f:
+        f.write(conllu_content)
 
     # Step 3: Parsing/Prediction
     run_parser(path_empty_conllu, work_dir, model_path)

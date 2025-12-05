@@ -106,7 +106,7 @@ def _clean_sentence(sent: str) -> str | None:
 #################################################
 ### função stripSents - faz de fato o sentenciamento
 #################################################
-def stripSents(inputText: str, limit: int = 0, replace: bool = True) -> list[str]:
+def stripSents(inputText: str, limit: int = 2048, replace: bool = True) -> list[str]:
     """
     Segment input text into sentences.
     
