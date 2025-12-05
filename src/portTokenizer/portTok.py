@@ -30,7 +30,8 @@ import logging
 import os
 import argparse
 
-from lexikon import lex, is_abbreviation
+from lexikon import lex
+from lexikon.abbrev import is_abbreviation
 
 logger = logging.getLogger(__name__)
 

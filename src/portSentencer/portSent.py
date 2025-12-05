@@ -26,7 +26,7 @@ import logging
 import os
 import argparse
 
-from lexikon import ends_with_abbreviation
+from lexikon.abbrev import ends_with_abbreviation
 
 logger = logging.getLogger(__name__)
 
