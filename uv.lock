@@ -826,21 +826,23 @@ wheels = [
 [[package]]
 name = "portparser-v2"
 version = "0.1.0"
-source = { virtual = "." }
+source = { editable = "." }
 dependencies = [
     { name = "huggingface-hub" },
     { name = "keras" },
     { name = "pandas" },
-    { name = "streamlit" },
     { name = "torch" },
     { name = "transformers" },
     { name = "ufal-chu-liu-edmonds" },
-    { name = "watchdog" },
 ]
 
 [package.optional-dependencies]
 dev = [
     { name = "pytest" },
+]
+ui = [
+    { name = "streamlit" },
+    { name = "watchdog" },
 ]
 
 [package.metadata]
@@ -849,13 +851,13 @@ requires-dist = [
     { name = "keras", specifier = ">=3.12.0" },
     { name = "pandas", specifier = ">=2.3.3" },
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=8.0.0" },
-    { name = "streamlit", specifier = ">=1.52.0" },
+    { name = "streamlit", marker = "extra == 'ui'", specifier = ">=1.52.0" },
     { name = "torch", specifier = ">=2.9.1" },
     { name = "transformers", specifier = ">=4.57.3" },
     { name = "ufal-chu-liu-edmonds", specifier = ">=1.0.3" },
-    { name = "watchdog", specifier = ">=6.0.0" },
+    { name = "watchdog", marker = "extra == 'ui'", specifier = ">=6.0.0" },
 ]
-provides-extras = ["dev"]
+provides-extras = ["ui", "dev"]
 
 [[package]]
 name = "protobuf"
