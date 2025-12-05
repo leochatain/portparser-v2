@@ -19,9 +19,11 @@ import io
 import os
 import argparse
 from dataclasses import dataclass, field
-import lexikon
+
+from lexikon import UDlexPT
 from conlluFile import ConlluFile
-lex = lexikon.UDlexPT()
+
+lex = UDlexPT()
 
 
 @dataclass

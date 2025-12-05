@@ -35,8 +35,10 @@
 
 import os
 import argparse
-import lexikon
-lex = lexikon.UDlexPT()
+
+from lexikon import UDlexPT
+
+lex = UDlexPT()
 
 
 #################################################
