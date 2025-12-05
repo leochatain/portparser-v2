@@ -22,10 +22,13 @@
 # last edit: 01/21/2024
 # created by Lucelene Lopes - lucelene@gmail.com
 
+import logging
 import os
 import argparse
 
 from lexikon import ends_with_abbreviation
+
+logger = logging.getLogger(__name__)
 
 
 #################################################
@@ -221,7 +224,7 @@ def main() -> None:
         for sentence in sentences:
             outfile.write(sentence + "\n")
     
-    print(f"Sentenciamento terminado com {len(sentences)} sentenças extraídas e salvas em {args.output_file}")
+    logger.info(f"Sentenciamento terminado com {len(sentences)} sentenças extraídas e salvas em {args.output_file}")
 
 
 if __name__ == "__main__":

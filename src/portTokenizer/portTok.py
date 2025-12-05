@@ -26,12 +26,13 @@
 # last edit: 10/05/2025
 # created by Lucelene Lopes - lucelene@gmail.com
 
+import logging
 import os
 import argparse
 
-from lexikon import UDlexPT, is_abbreviation
+from lexikon import lex, is_abbreviation
 
-lex = UDlexPT()
+logger = logging.getLogger(__name__)
 
 
 #################################################
@@ -880,7 +881,7 @@ def main() -> None:
     
     # Count sentences in output
     s_total = output.count("# sent_id = ")
-    print(f"Tokenização terminada com {s_total} sentenças extraídas e salvas em {args.output_file}")
+    logger.info(f"Tokenização terminada com {s_total} sentenças extraídas e salvas em {args.output_file}")
 
 if __name__ == "__main__":
     main()

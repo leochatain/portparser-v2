@@ -10,7 +10,10 @@
 #    pexists(self, word, tag):  # returns True if this word has at least one entry for tag
 #    theTags(self, word):       # returns an array of all tags of a word - empty if absent of the lexicon
 
+import logging
 from os import path
+
+logger = logging.getLogger(__name__)
 
 class UDlexPT:
     def __init__(self):  # creates the lexicon
@@ -51,11 +54,11 @@ class UDlexPT:
                 nEnD[self.tags.index(t)] += 1
             infile.close()
             i += 1
-        print("UDlexPT read with", self.words, "distinct words and", self.entries, "entries")
-        print("{:5} & {:6} & {:6} & {:6} \\\\ \\hline".format("tag","total","amb","non-amb"))
+        logger.info(f"UDlexPT read with {self.words} distinct words and {self.entries} entries")
+        logger.debug("{:5} & {:6} & {:6} & {:6} \\\\ \\hline".format("tag","total","amb","non-amb"))
         accW, accN, accE = 0, 0, 0
         for t in self.tags:
-            print("{:5} & {:6} & {:6} & {:6} & {:6} \\\\ \\hline".format(t, \
+            logger.debug("{:5} & {:6} & {:6} & {:6} & {:6} \\\\ \\hline".format(t, \
                 nEnt[self.tags.index(t)], \
                 nEnt[self.tags.index(t)]-nNAE[self.tags.index(t)], \
                 nNAE[self.tags.index(t)], \
@@ -63,7 +66,7 @@ class UDlexPT:
             accW += nEnt[self.tags.index(t)]
             accN += nNAE[self.tags.index(t)]
             accE += nEnD[self.tags.index(t)]
-        print("{:5} & {:6} & {:6} & {:6} & {:6} \\\\ \\hline".format("total", self.words, self.words-accN, accN, accE))
+        logger.debug("{:5} & {:6} & {:6} & {:6} & {:6} \\\\ \\hline".format("total", self.words, self.words-accN, accN, accE))
     def sget(self, word):   # get the entries for a word
         tags = self.master.get(word,"none")
         if (tags == "none"):

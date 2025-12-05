@@ -20,10 +20,8 @@ import os
 import argparse
 from dataclasses import dataclass, field
 
-from lexikon import UDlexPT
+from lexikon import lex
 from conlluFile import ConlluFile
-
-lex = UDlexPT()
 
 
 @dataclass
