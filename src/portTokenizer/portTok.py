@@ -82,7 +82,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument(
         "-t", "--trim", "--no-trim",
         action=argparse.BooleanOptionalAction,
-        default=True,
+        default=False,
         dest="trim",
         help="Remove possíveis manchetes que precedem as frases (default: %(default)s)"
     )

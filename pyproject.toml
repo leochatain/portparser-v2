@@ -23,3 +23,8 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/portparser_v2", "src/lexikon"]
+
+[tool.pytest.ini_options]
+markers = [
+    "slow: marks tests as slow (require model download and inference)",
+]
