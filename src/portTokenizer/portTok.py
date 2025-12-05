@@ -3,13 +3,6 @@
 # Este programa recebe um arquivo de entrada textual com uma sentença
 #    por linha e gera um arquivo CoNLL-U devidamente tokenizado.
 #
-# Este programa utiliza um léxico de Português, PortiLexicon-UD através da
-#    chamada da classe UDlexPT incluída no arquivo "lexikon.py" disponível
-#    em conjunto com este arquivo ("portTok.py") e com os arquivos textuais
-#    do léxico ("ADJ.tsv", "ADP.tsv", "ADV.tsv", "AUX.tsv", "CCONJ.tsv", 
-#    "DET.tsv", "INTJ.tsv", "NOUN.tsv", "NUM.tsv", "PRON.tsv", "SCONJ.tsv", 
-#    "VERB.tsv", "WORDmaster.txt").
-#
 # Opções:
 #
 # -h help

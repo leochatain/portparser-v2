@@ -10,6 +10,9 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 from portSentencer.portSent import stripSents
 
+# Path to test fixtures
+FIXTURES_DIR = Path(__file__).parent / "fixtures" / "portSentencer"
+
 
 class TestStripSents:
     """Test the stripSents function."""
@@ -168,3 +171,45 @@ class TestFileOutput:
         # Read back and compare
         file_lines = file_path.read_text().strip().split("\n")
         assert sentences == file_lines
+
+
+class TestIntegrationAlienista:
+    """Integration test using alienista.txt fixture file (O Alienista by Machado de Assis)."""
+
+    @pytest.fixture
+    def input_text(self) -> str:
+        """Load input text from fixture file."""
+        input_file = FIXTURES_DIR / "alienista.txt"
+        with open(input_file, "r", encoding="utf-8") as f:
+            return f.read()
+
+    @pytest.fixture
+    def expected_sentences(self) -> list[str]:
+        """Load expected sentences from fixture file."""
+        expected_file = FIXTURES_DIR / "expected_alienista_sents.txt"
+        with open(expected_file, "r", encoding="utf-8") as f:
+            return [line.rstrip("\n") for line in f if line.strip()]
+
+    def test_sentence_segmentation_matches_expected(
+        self, input_text: str, expected_sentences: list[str]
+    ):
+        """Verify stripSents output matches expected sentences file."""
+        # Process with same parameters as app.py: -r -l 2048
+        actual_sentences = stripSents(input_text, limit=2048, replace=True)
+
+        # Compare sentence by sentence for better error messages
+        assert len(actual_sentences) == len(expected_sentences), (
+            f"Sentence count mismatch: got {len(actual_sentences)}, expected {len(expected_sentences)}"
+        )
+
+        for i, (actual, expected) in enumerate(zip(actual_sentences, expected_sentences)):
+            assert actual == expected, (
+                f"Sentence {i + 1} mismatch:\n"
+                f"  Actual:   {actual!r}\n"
+                f"  Expected: {expected!r}"
+            )
+
+    def test_sentence_count(self, input_text: str):
+        """Verify the number of sentences extracted."""
+        sentences = stripSents(input_text, limit=2048, replace=True)
+        assert len(sentences) == 49, f"Expected 49 sentences, got {len(sentences)}"
