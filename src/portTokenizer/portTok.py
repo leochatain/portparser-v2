@@ -895,7 +895,7 @@ def processSentences(
         if processed_lines:
             all_output_lines.extend(processed_lines)
     
-    return "\n".join(all_output_lines)
+    return "\n".join(all_output_lines) + "\n"
 
 
 #################################################
