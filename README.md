@@ -125,18 +125,6 @@ The parser runs a 4-step pipeline:
 The model weights are automatically downloaded from HuggingFace on first use:
 - Repository: [`lucelene/Portparser.v2-latinpipe-core`](https://huggingface.co/lucelene/Portparser.v2-latinpipe-core)
 
-
-## Citation
-
-If you use this in any research, cite the folks in the original repo.
-
-
 ## License
 
 See [LICENSE](LICENSE) for details.
-
-## Acknowledgments
-
-- Original development by Lucelene Lopes ([GitHub](https://github.com/LuceleneL))
-- Interface by Ana Carolina Rodrigues ([GitHub](https://github.com/anasampa))
-- Affiliated with [NILC](https://sites.google.com/view/nilc-usp/), [ICMC-USP](https://www.icmc.usp.br/), and the [POeTiSA project](https://sites.google.com/icmc.usp.br/poetisa)
