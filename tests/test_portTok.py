@@ -8,7 +8,10 @@ import pytest
 # Add src to path so we can import portTokenizer
 sys.path.insert(0, str(Path(__file__).parent.parent / "src" / "portTokenizer"))
 
-from portTok import nextName, trimIt, tagIt, punctIt, tokenizeIt, processIt
+from portTok import nextName, trimIt, tagIt, punctIt, tokenizeIt, processIt, processSentences
+
+# Path to test fixtures
+FIXTURES_DIR = Path(__file__).parent / "fixtures" / "portTok"
 
 
 class TestNextName:
@@ -556,4 +559,67 @@ class TestEnclisis:
         """Enclisis comprá-lo (with accent)."""
         tokens = self._tokenize("Vou comprá-lo.")
         assert "lo" in tokens or "o" in tokens
+
+
+class TestIntegrationSentsFile:
+    """Integration test using sents.txt fixture file."""
+
+    @pytest.fixture
+    def input_sentences(self) -> list[str]:
+        """Load input sentences from fixture file."""
+        input_file = FIXTURES_DIR / "sents.txt"
+        with open(input_file, "r", encoding="utf-8") as f:
+            return [line.rstrip("\n") for line in f]
+
+    @pytest.fixture
+    def expected_output(self) -> str:
+        """Load expected CoNLL-U output from fixture file."""
+        expected_file = FIXTURES_DIR / "expected_sents.conllu"
+        with open(expected_file, "r", encoding="utf-8") as f:
+            return f.read()
+
+    def test_process_sentences_matches_expected(
+        self, input_sentences: list[str], expected_output: str
+    ):
+        """Verify processSentences output matches expected CoNLL-U file."""
+        # Process with same parameters used by upstream (default options)
+        # The expected file uses S000001, S000002, etc. (6 digits starting at 1)
+        # So sid_start should be "S000000" to get S000001 as first ID
+        actual_output = processSentences(
+            input_sentences,
+            sid_start="S000000",
+            preserve=True,
+            match=True,
+            trim=True,
+        )
+
+        # Normalize line endings and trailing whitespace
+        actual_lines = [line.rstrip() for line in actual_output.strip().split("\n")]
+        expected_lines = [line.rstrip() for line in expected_output.strip().split("\n")]
+
+        # Compare line by line for better error messages
+        assert len(actual_lines) == len(expected_lines), (
+            f"Line count mismatch: got {len(actual_lines)}, expected {len(expected_lines)}"
+        )
+
+        for i, (actual, expected) in enumerate(zip(actual_lines, expected_lines)):
+            assert actual == expected, (
+                f"Line {i + 1} mismatch:\n"
+                f"  Actual:   {actual!r}\n"
+                f"  Expected: {expected!r}"
+            )
+
+    def test_sentence_count(self, input_sentences: list[str]):
+        """Verify the number of processed sentences."""
+        output = processSentences(
+            input_sentences,
+            sid_start="S000000",
+            preserve=True,
+            match=True,
+            trim=True,
+        )
+        # Count sentences by counting "# sent_id" lines
+        sentence_count = output.count("# sent_id = ")
+        # One sentence should be trimmed to empty (headline-only line)
+        assert sentence_count == 284, f"Expected 284 sentences, got {sentence_count}"
 
